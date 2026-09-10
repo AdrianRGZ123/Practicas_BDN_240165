@@ -4,7 +4,7 @@
 Perido:Sepmtiembre  - Diciembre 2026
 
 ---
-
+|ID|Numero de Practicas|Nombre de las Practicas|Potenciador|Estatus|
 |---|---|---|---|---|
 |1.| Prácatica 02|Conexión Remota en MySQL|42|🟡En desarrolo|
 

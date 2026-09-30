@@ -29,7 +29,7 @@ GRANT ALL PRIVILEGES ON db_test.* TO 'admin';
 -- SUPPORT
 GRANT SELECT, INSERT, UPDATE ON db_test.tb_users TO 'support';
 GRANT SELECT, INSERT, UPDATE ON db_test.tb_products TO 'support';
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_users TO 'seller';
+GRANT SELECT, INSERT, UPDATE ON db_test.tb_products TO 'seller';
 GRANT SELECT, INSERT, UPDATE ON db_test.* TO 'jose.maria'@'%';
  
  -- Seller

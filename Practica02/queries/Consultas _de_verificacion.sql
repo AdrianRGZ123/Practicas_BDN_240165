@@ -73,5 +73,5 @@ SELECT COUNT(*) FROM tb_products;
 /* Visualizar todos los productos */
 SELECT * FROM tb_products;
 
-/* Consulta para saber la trazabilidad de los productos */
+/* Consulta para saber la trazabilidad de los productosp */
 SELECT * FROM vw_trazabilidad_productos LIMIT 10;

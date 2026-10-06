@@ -32,7 +32,7 @@ GRANT ALL PRIVILEGES ON db_test.* TO 'admin';
 /* SUPERADMIN*/
 GRANT SELECT, UPDATE ON db_test.tb_users TO 'support';
 GRANT SELECT, UPDATE ON db_test.tb_products TO 'support';
-GRANT SELECT, INSERT ON db_test.tbc_categories TO 'support';
+
 GRANT SELECT, INSERT, UPDATE ON db_test.tbd_products_categories TO 'support';
 GRANT SELECT, INSERT, UPDATE ON db_test.* TO 'jose.maria'@'%';
  

@@ -1,4 +1,6 @@
-/*CREACION DE USUARIOS REMOTOS*/
+/* ============================================================
+   1. CREACIÓN DE USUARIOS REMOTOS
+   ============================================================ */
 
 CREATE USER IF NOT EXISTS 'adrian.rios'@'%' IDENTIFIED BY '240165';
 CREATE USER IF NOT EXISTS 'marco.ramirez'@'%' IDENTIFIED BY 'qwerty123';
@@ -8,10 +10,22 @@ CREATE USER IF NOT EXISTS 'jose.maria'@'%' IDENTIFIED BY '240628';
 CREATE USER IF NOT EXISTS 'luis.mua'@'%' IDENTIFIED BY '240343';
 CREATE USER IF NOT EXISTS 'erick.uriel'@'%' IDENTIFIED BY '240485';
 
-/*ASIGNACION DE PRIVILEGIOS DEL SUPER USUARIO IMPORTANTE: SOLO USTEDES*/
-GRANT ALL PRIVILEGES ON *.* TO 'adrian.rios'@'%' WITH GRANT OPTION;
 
-/*CREACIÓN DE ROLES PARA LOS USUARIOS DE LA PLATAFORMA DE ECOMMERCE*/
+/* ============================================================
+   2. PRIVILEGIOS DEL SUPERUSUARIO
+   SOLO ADRIAN
+   ============================================================ */
+
+GRANT ALL PRIVILEGES
+ON *.*
+TO 'adrian.rios'@'%'
+WITH GRANT OPTION;
+
+
+/* ============================================================
+   3. CREACIÓN DE ROLES
+   ============================================================ */
+
 CREATE ROLE IF NOT EXISTS 'superadmin';
 CREATE ROLE IF NOT EXISTS 'admin';
 CREATE ROLE IF NOT EXISTS 'seller';
@@ -20,40 +34,104 @@ CREATE ROLE IF NOT EXISTS 'common_user';
 CREATE ROLE IF NOT EXISTS 'user_not_registered';
 CREATE ROLE IF NOT EXISTS 'support';
 
-/*ASIGNACIÓN DE PRIVILEGIOS A LOS ROLES DE LA PLATAFORMA DE ECOMMERCE*/
 
--- ADMIN
-GRANT ALL PRIVILEGES ON *.* TO 'superadmin';
-GRANT ALL PRIVILEGES ON db_test.* TO 'admin';
-
--- SUPPORT
-/* ASIGNACION DE PRIVILEGIOS A LOS ROLES DE LA PLATAFORMA ECOMMERCE */
--- ADMIN
-/* SUPERADMIN*/
-GRANT SELECT, UPDATE ON db_test.tb_users TO 'support';
-GRANT SELECT, UPDATE ON db_test.tb_products TO 'support';
-
-GRANT SELECT, INSERT, UPDATE ON db_test.tbd_products_categories TO 'support';
-GRANT SELECT, INSERT, UPDATE ON db_test.* TO 'jose.maria'@'%';
- 
- -- Seller
- GRANT SELECT, INSERT, UPDATE ON db_test.tb_products TO 'seller';
+/* ============================================================
+   4. PRIVILEGIOS DE LOS ROLES
+   ============================================================ */
 
 
-/*ASIGNAR EL ROL AL USUARIO*/
+/* -------------------------
+   SUPERADMIN
+   ------------------------- */
 
--- Este deben ser ustedes
-GRANT 'superadmin' TO 'adrian.rios'@'%';
-
--- Soporte
-GRANT 'admin' TO 'marco.ramirez'@'%';
-
-GRANT 'support' TO 'carlos.rene'@'%';
-GRANT 'seller' TO 'juan.pablo'@'%';
-GRANT 'seller' TO 'erick.uriel'@'%';
+GRANT ALL PRIVILEGES
+ON *.*
+TO 'superadmin';
 
 
-/*6. Esto permite que el rol se active automaticamente cuando el usuario inicia sesión*/
+/* -------------------------
+   ADMIN
+   ------------------------- */
+
+GRANT ALL PRIVILEGES
+ON db_test.*
+TO 'admin';
+
+
+/* -------------------------
+   SUPPORT
+   ------------------------- */
+
+GRANT SELECT, UPDATE
+ON db_test.tb_users
+TO 'support';
+
+GRANT SELECT, UPDATE
+ON db_test.tb_products
+TO 'support';
+
+GRANT SELECT, INSERT, UPDATE
+ON db_test.tbc_categories
+TO 'support';
+
+/* Permite ejecutar procedimientos almacenados */
+GRANT EXECUTE
+ON db_test.*
+TO 'support';
+
+
+/* -------------------------
+   SELLER
+   ------------------------- */
+
+GRANT SELECT, INSERT, UPDATE
+ON db_test.tb_products
+TO 'seller';
+
+
+/* ============================================================
+   5. ASIGNACIÓN DE ROLES A LOS USUARIOS
+   ============================================================ */
+
+
+/* -------------------------
+   SUPERADMIN
+   ------------------------- */
+
+GRANT 'superadmin'
+TO 'adrian.rios'@'%';
+
+
+/* -------------------------
+   ADMIN
+   ------------------------- */
+
+GRANT 'admin'
+TO 'marco.ramirez'@'%';
+
+
+/* -------------------------
+   SUPPORT
+   ------------------------- */
+
+GRANT 'support'
+TO 'carlos.rene'@'%';
+
+
+/* -------------------------
+   SELLER
+   ------------------------- */
+
+GRANT 'seller'
+TO 'juan.pablo'@'%';
+
+GRANT 'seller'
+TO 'erick.uriel'@'%';
+
+
+/* ============================================================
+   6. ACTIVAR ROLES AUTOMÁTICAMENTE AL INICIAR SESIÓN
+   ============================================================ */
 
 SET DEFAULT ROLE 'superadmin'
 TO 'adrian.rios'@'%';
@@ -70,10 +148,18 @@ TO 'juan.pablo'@'%';
 SET DEFAULT ROLE 'seller'
 TO 'erick.uriel'@'%';
 
--- 7. REFRESCAR PRIVILEGIOS Y MENSAJE DE CONFIRMACION
+
+/* ============================================================
+   7. REFRESCAR PRIVILEGIOS
+   ============================================================ */
+
 FLUSH PRIVILEGES;
 
 
+/* ============================================================
+   8. MENSAJE DE CONFIRMACIÓN
+   ============================================================ */
 
-
-SELECT "Los usuarios y privilegios han sido creados correctamente" AS mensaje;
+SELECT
+    'Los usuarios, roles y privilegios han sido creados correctamente'
+    AS mensaje;

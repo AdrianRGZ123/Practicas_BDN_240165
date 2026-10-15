@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "finalize",
+  "status": "pass",
+  "type": "erd",
+  "quality": "standard",
+  "specification": {
+    "path": "C:\\Users\\ti_la\\Desktop\\Practicas_BDN_240165\\.archify\\erd-respaldo-14-10-26-20261014-181812\\candidate.json",
+    "sha256": "6cce1b487823d5c648af257e36cffe53aa8095bcf4cfdf6cd6283a4c2555c130",
+    "bytes": 11309
+  },
+  "artifact": {
+    "path": "C:\\Users\\ti_la\\Desktop\\Practicas_BDN_240165\\.archify\\erd-respaldo-14-10-26-20261014-181812\\erd-respaldo-14-10-26.html",
+    "sha256": "e8da2c149a2e18670ea835139d7d412c938bce468e399a919adcb29232c133bf",
+    "bytes": 858882
+  },
+  "gates": {
+    "validate": "pass",
+    "deliver": "pass",
+    "check": "pass",
+    "browser-check": "pass"
+  },
+  "diagnostics": [],
+  "diagnosticSummary": {
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "evidence": {
+    "receipt": "C:\\Users\\ti_la\\Desktop\\Practicas_BDN_240165\\.archify\\erd-respaldo-14-10-26-20261014-181812\\review-2\\erd-respaldo-14-10-26.finalize.json",
+    "summaryReceipt": "C:\\Users\\ti_la\\Desktop\\Practicas_BDN_240165\\.archify\\erd-respaldo-14-10-26-20261014-181812\\review-2\\erd-respaldo-14-10-26.finalize-summary.json",
+    "browserCheckReceipt": "C:\\Users\\ti_la\\Desktop\\Practicas_BDN_240165\\.archify\\erd-respaldo-14-10-26-20261014-181812\\review-2\\erd-respaldo-14-10-26.browser-check.json"
+  },
+  "update": {
+    "status": "current",
+    "installedVersion": "3.1.0",
+    "availableVersion": "3.1.0",
+    "releaseNotes": null,
+    "checkedAt": "2026-10-15T00:18:13.861Z",
+    "source": "cache",
+    "noticeRequired": false,
+    "noticeText": null
+  },
+  "visualReview": "not-requested",
+  "durationMs": 3568,
+  "visualReviewRecommendation": {
+    "action": "inspect-route-readability",
+    "signals": {
+      "routesOverSuggestedBends": 1
+    },
+    "reason": "Automated gates passed, but crossings or detours still need perceptual review before claiming visual quality.",
+    "affectedRoutes": {
+      "crossings": [],
+      "detours": [
+        {
+          "relationship": {
+            "id": "provider_user_link",
+            "from": "tbd_products_users_providers",
+            "to": "tb_users",
+            "label": "user_ID",
+            "collectionIndex": 4,
+            "artifactIndex": 5
+          },
+          "bends": 3,
+          "stretch": 1.037
+        }
+      ],
+      "truncated": false
+    },
+    "repair": "Advisory only: this mode places or routes these relationships itself. Report them; do not remove relationships or meaning to reduce crossings."
+  }
+}

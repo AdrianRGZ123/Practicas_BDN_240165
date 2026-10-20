@@ -1,0 +1,183 @@
+Project db_test {
+  database_type: "MySQL"
+  Note: "Generado desde DDL disponible"
+}
+
+Table tb_carts {
+  ID int unsigned [pk, increment]
+  user_ID int
+  status bit(1) [null]
+  creation_date datetime
+  last_update datetime [null]
+}
+
+Table tb_logs {
+  ID int [pk, increment]
+  table_name varchar(100)
+  operation enum('Create','Read','Update','Delete')
+  db_user varchar(80)
+  description text
+  operation_date datetime
+  operation_status bit(1) [null]
+}
+
+Table tb_products {
+  id int unsigned [pk, increment]
+  sku varchar(50)
+  name varchar(250)
+  description text [null]
+  current_price decimal(10,2)
+  current_stock int unsigned
+  status bit(1) [null]
+  creation_date datetime
+  last_update datetime
+}
+
+Table tb_seller_orders {
+  ID int unsigned [pk, increment]
+  seller_ID int
+  subtotal decimal(12,2)
+  shipping_cost decimal(12,2)
+  fulfillment_status enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')
+  status bit(1)
+  creation_date datetime
+  last_update datetime [null]
+}
+
+Table tb_user_addresses {
+  ID bigint unsigned [pk, increment]
+  user_ID int
+  address_label varchar(100)
+  recipient_name varchar(150) [null]
+  recipient_phone varchar(25) [null]
+  delivery_instructions varchar(500) [null]
+  latitude decimal(10,7) [null]
+  longitude decimal(10,7) [null]
+  is_default tinyint(1)
+  status bit(1)
+  creation_date datetime
+  last_update datetime [null]
+}
+
+Table tb_users {
+  ID int [pk, increment]
+  email varchar(80)
+  nickname varchar(100)
+  password varchar(255)
+  creation_date datetime
+  last_update datetime [null]
+  last_login datetime [null]
+  status bit(1)
+}
+
+Table tbc_categories {
+  ID int unsigned [pk, increment]
+  name varchar(120)
+  description text [null]
+  sup_id_category int unsigned [null]
+  status bit(1)
+  creation_date datetime
+  last_update datetime
+}
+
+Table tbc_payment_methods_types {
+  ID int unsigned [pk, increment]
+  code varchar(30)
+  description text
+  status bit(1)
+  creation_date datetime
+  last_update datetime [null]
+}
+
+Table tbd_address_components {
+  ID bigint unsigned [pk, increment]
+  address_ID bigint unsigned
+  value varchar(255)
+  component_type varchar(50)
+  status bit(1)
+  address_sup_ID bigint unsigned [null]
+  creation_date datetime
+  last_update datetime [null]
+}
+
+Table tbd_cart_items {
+  cart_ID int unsigned [pk]
+  provider_ID int [pk]
+  product_ID int unsigned [pk]
+  quantity int unsigned
+  creation_date datetime
+}
+
+Table tbd_order_items {
+  ID int unsigned [pk, increment]
+  seller_order_ID int unsigned
+  product_ID int unsigned
+  provider_ID int
+  product_name varchar(255)
+  quantity int unsigned
+  unit_price decimal(12,2)
+  subtotal decimal(12,2) [null]
+  creation_date datetime
+}
+
+Table tbd_products_categories {
+  category_ID int unsigned [pk]
+  product_ID int unsigned [pk]
+  status bit(1)
+  creation_date datetime
+  last_update datetime
+}
+
+Table tbd_products_users_providers {
+  user_ID int [pk]
+  product_ID int unsigned [pk]
+  type_ownership enum('Owner','Reseller','Distributor') [null]
+  status bit(1)
+  available_date datetime
+  creation_date datetime
+  last_update datetime
+}
+
+Table tbd_user_payment_methods {
+  ID bigint unsigned [pk, increment]
+  user_ID int
+  payment_method_type_ID int unsigned
+  provider varchar(60)
+  provider_method_ref varchar(255)
+  label varchar(100) [null]
+  last_four char(4) [null]
+  is_default tinyint(1)
+  status bit(1)
+  creation_date datetime
+  last_update datetime [null]
+}
+
+Table tbd_users_wishlist_products {
+  user_ID int [pk]
+  product_ID int unsigned [pk]
+  status bit(1)
+  creation_date datetime
+  last_update datetime
+}
+
+Ref: tb_carts.user_ID > tb_users.ID
+Ref: tb_seller_orders.seller_ID > tb_users.ID
+Ref: tb_user_addresses.user_ID > tb_users.ID
+Ref: tbc_categories.sup_id_category > tbc_categories.ID
+Ref: tbd_address_components.address_ID > tb_user_addresses.ID
+Ref: tbd_address_components.address_ID > tbd_address_components.address_ID
+Ref: tbd_address_components.address_sup_ID > tbd_address_components.ID
+Ref: tbd_cart_items.cart_ID > tb_carts.ID
+Ref: tbd_cart_items.provider_ID > tbd_products_users_providers.user_ID
+Ref: tbd_cart_items.product_ID > tbd_products_users_providers.product_ID
+Ref: tbd_order_items.seller_order_ID > tb_seller_orders.ID
+Ref: tbd_order_items.product_ID > tbd_products_users_providers.product_ID
+Ref: tbd_order_items.provider_ID > tbd_products_users_providers.user_ID
+Ref: tbd_products_categories.category_ID > tbc_categories.ID
+Ref: tbd_products_categories.product_ID > tb_products.id
+Ref: tbd_products_users_providers.product_ID > tb_products.id
+Ref: tbd_products_users_providers.user_ID > tb_users.ID
+Ref: tbd_user_payment_methods.user_ID > tb_users.ID
+Ref: tbd_user_payment_methods.payment_method_type_ID > tbc_payment_methods_types.ID
+Ref: tbd_users_wishlist_products.product_ID > tb_products.id
+Ref: tbd_users_wishlist_products.user_ID > tb_users.ID

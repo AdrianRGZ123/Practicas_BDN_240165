@@ -1,0 +1,169 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Diccionario de Datos | BDN 240165</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.7;
+            color: #1f2937;
+            background: #f4f7fb;
+        }
+
+        header {
+            padding: 35px 20px;
+            color: white;
+            background: #17365d;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        main {
+            width: min(1100px, 94%);
+            margin: 30px auto;
+        }
+
+        .documentos, #contenido {
+            padding: 25px;
+            margin-bottom: 24px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+
+        a {
+            color: #0969da;
+        }
+
+        .documentos a {
+            display: inline-block;
+            margin: 5px 12px 5px 0;
+        }
+
+        #contenido {
+            overflow-wrap: anywhere;
+        }
+
+        #contenido table {
+            display: block;
+            max-width: 100%;
+            overflow-x: auto;
+            border-collapse: collapse;
+        }
+
+        #contenido th, #contenido td {
+            padding: 9px;
+            border: 1px solid #d1d5db;
+            text-align: left;
+        }
+
+        #contenido th {
+            background: #eaf0f8;
+        }
+
+        #contenido pre {
+            padding: 15px;
+            overflow-x: auto;
+            background: #f1f5f9;
+            border-radius: 6px;
+        }
+
+        footer {
+            padding: 20px;
+            color: #64748b;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Diccionario de Datos</h1>
+        <p>Práctica 03 · Bases de Datos en la Nube</p>
+        <p>Periodo septiembre - diciembre 2026</p>
+    </header>
+
+    <main>
+        <section class="documentos">
+            <h2>Archivos del diccionario</h2>
+
+            <a href="./diccionario_datos/diccionario_datos.md">
+                Ver archivo Markdown
+            </a>
+
+            <a href="./diccionario_datos/diccionario_datos.xlsx">
+                Descargar Excel
+            </a>
+
+            <a href="./diccionario_datos/estructura.json">
+                Consultar estructura JSON
+            </a>
+
+            <a href="./diccionario_datos/schema.dbml">
+                Consultar esquema DBML
+            </a>
+
+            <a href="./diccionario_datos/diagrama_er.mmd">
+                Consultar diagrama Mermaid
+            </a>
+        </section>
+
+        <section id="contenido">
+            <h2>Contenido del diccionario</h2>
+            <p>Cargando documentación...</p>
+        </section>
+    </main>
+
+    <footer>
+        Practicas_BDN_240165 · Práctica 03
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        async function cargarDiccionario() {
+            const contenido = document.getElementById("contenido");
+
+            try {
+                const respuesta = await fetch(
+                    "./diccionario_datos/diccionario_datos.md"
+                );
+
+                if (!respuesta.ok) {
+                    throw new Error("No se encontró el archivo Markdown.");
+                }
+
+                const markdown = await respuesta.text();
+
+                contenido.innerHTML = marked.parse(markdown);
+            } catch (error) {
+                contenido.innerHTML = `
+                    <h2>No se pudo cargar el diccionario</h2>
+                    <p>${error.message}</p>
+                    <p>
+                        Puedes consultar el documento original
+                        <a href="./diccionario_datos/diccionario_datos.md">
+                            aquí
+                        </a>.
+                    </p>
+                `;
+            }
+        }
+
+        cargarDiccionario();
+    </script>
+</body>
+</html>

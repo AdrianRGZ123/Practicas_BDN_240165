@@ -9,6 +9,8 @@ CREATE USER IF NOT EXISTS 'juan.pablo'@'%' IDENTIFIED BY '240148';
 CREATE USER IF NOT EXISTS 'jose.maria'@'%' IDENTIFIED BY '240628';
 CREATE USER IF NOT EXISTS 'luis.mua'@'%' IDENTIFIED BY '240343';
 CREATE USER IF NOT EXISTS 'erick.uriel'@'%' IDENTIFIED BY '240485';
+CREATE USER IF NOT EXISTS 'app_web'@'%' IDENTIFIED BY 'Web123';
+CREATE USER IF NOT EXISTS 'app_movil'@'%' IDENTIFIED BY 'Mobile890';
 
 
 /* ============================================================
@@ -74,7 +76,6 @@ GRANT SELECT, INSERT, UPDATE
 ON db_test.tbc_categories
 TO 'support';
 
-/* Permite ejecutar procedimientos almacenados */
 GRANT EXECUTE
 ON db_test.*
 TO 'support';
@@ -90,7 +91,33 @@ TO 'seller';
 
 
 /* ============================================================
-   5. ASIGNACIÓN DE ROLES A LOS USUARIOS
+   5. PERMISOS DE INSERCIÓN PARA EL USUARIO SIN ROL
+   ============================================================ */
+
+GRANT INSERT
+ON db_test.tb_users
+TO 'jose.maria'@'%';
+
+GRANT INSERT
+ON db_test.tb_people
+TO 'jose.maria'@'%';
+
+
+/* -------------------------
+   USER NOT REGISTERED
+   ------------------------- */
+
+GRANT INSERT
+ON db_test.tb_users
+TO 'user_not_registered';
+
+GRANT INSERT
+ON db_test.tb_people
+TO 'user_not_registered';
+
+
+/* ============================================================
+   6. ASIGNACIÓN DE ROLES A LOS USUARIOS
    ============================================================ */
 
 
@@ -129,8 +156,19 @@ GRANT 'seller'
 TO 'erick.uriel'@'%';
 
 
+/* -------------------------
+   APP MOVIL Y WEB
+   ------------------------- */
+
+GRANT 'user_not_registered'
+TO 'app_web'@'%';
+
+GRANT 'user_not_registered'
+TO 'app_movil'@'%';
+
+
 /* ============================================================
-   6. ACTIVAR ROLES AUTOMÁTICAMENTE AL INICIAR SESIÓN
+   7. ACTIVAR ROLES AUTOMÁTICAMENTE AL INICIAR SESIÓN
    ============================================================ */
 
 SET DEFAULT ROLE 'superadmin'
@@ -148,16 +186,22 @@ TO 'juan.pablo'@'%';
 SET DEFAULT ROLE 'seller'
 TO 'erick.uriel'@'%';
 
+SET DEFAULT ROLE 'user_not_registered'
+TO 'app_web'@'%';
+
+SET DEFAULT ROLE 'user_not_registered'
+TO 'app_movil'@'%';
+
 
 /* ============================================================
-   7. REFRESCAR PRIVILEGIOS
+   8. REFRESCAR PRIVILEGIOS
    ============================================================ */
 
 FLUSH PRIVILEGES;
 
 
 /* ============================================================
-   8. MENSAJE DE CONFIRMACIÓN
+   9. MENSAJE DE CONFIRMACIÓN
    ============================================================ */
 
 SELECT

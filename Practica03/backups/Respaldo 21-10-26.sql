@@ -1,10 +1,10 @@
 CREATE DATABASE  IF NOT EXISTS `db_test` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 USE `db_test`;
--- MySQL dump 10.13  Distrib 8.0.36, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 8.0.42, for Win64 (x86_64)
 --
 -- Host: 127.0.0.1    Database: db_test
 -- ------------------------------------------------------
--- Server version	8.0.36
+-- Server version	8.0.42
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -1765,6 +1765,24 @@ SET @saved_cs_client     = @@character_set_client;
 SET character_set_client = @saved_cs_client;
 
 --
+-- Temporary view structure for view `vw_trazabilidad_logs`
+--
+
+DROP TABLE IF EXISTS `vw_trazabilidad_logs`;
+/*!50001 DROP VIEW IF EXISTS `vw_trazabilidad_logs`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `vw_trazabilidad_logs` AS SELECT 
+ 1 AS `ID`,
+ 1 AS `table_name`,
+ 1 AS `operation`,
+ 1 AS `db_user`,
+ 1 AS `description`,
+ 1 AS `operation_date`,
+ 1 AS `operation_status`*/;
+SET character_set_client = @saved_cs_client;
+
+--
 -- Temporary view structure for view `vw_trazabilidad_order_items`
 --
 
@@ -1791,6 +1809,24 @@ DROP TABLE IF EXISTS `vw_trazabilidad_payment_methods_types`;
 SET @saved_cs_client     = @@character_set_client;
 /*!50503 SET character_set_client = utf8mb4 */;
 /*!50001 CREATE VIEW `vw_trazabilidad_payment_methods_types` AS SELECT 
+ 1 AS `ID`,
+ 1 AS `table_name`,
+ 1 AS `operation`,
+ 1 AS `db_user`,
+ 1 AS `description`,
+ 1 AS `operation_date`,
+ 1 AS `operation_status`*/;
+SET character_set_client = @saved_cs_client;
+
+--
+-- Temporary view structure for view `vw_trazabilidad_people`
+--
+
+DROP TABLE IF EXISTS `vw_trazabilidad_people`;
+/*!50001 DROP VIEW IF EXISTS `vw_trazabilidad_people`*/;
+SET @saved_cs_client     = @@character_set_client;
+/*!50503 SET character_set_client = utf8mb4 */;
+/*!50001 CREATE VIEW `vw_trazabilidad_people` AS SELECT 
  1 AS `ID`,
  1 AS `table_name`,
  1 AS `operation`,
@@ -2327,6 +2363,24 @@ DELIMITER ;
 /*!50001 SET collation_connection      = @saved_col_connection */;
 
 --
+-- Final view structure for view `vw_trazabilidad_logs`
+--
+
+/*!50001 DROP VIEW IF EXISTS `vw_trazabilidad_logs`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `vw_trazabilidad_logs` AS select `tb_logs`.`ID` AS `ID`,`tb_logs`.`table_name` AS `table_name`,`tb_logs`.`operation` AS `operation`,`tb_logs`.`db_user` AS `db_user`,`tb_logs`.`description` AS `description`,`tb_logs`.`operation_date` AS `operation_date`,`tb_logs`.`operation_status` AS `operation_status` from `tb_logs` where (`tb_logs`.`table_name` = 'tb_logs') */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
 -- Final view structure for view `vw_trazabilidad_order_items`
 --
 
@@ -2358,6 +2412,24 @@ DELIMITER ;
 /*!50001 CREATE ALGORITHM=UNDEFINED */
 /*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
 /*!50001 VIEW `vw_trazabilidad_payment_methods_types` AS select `tb_logs`.`ID` AS `ID`,`tb_logs`.`table_name` AS `table_name`,`tb_logs`.`operation` AS `operation`,`tb_logs`.`db_user` AS `db_user`,`tb_logs`.`description` AS `description`,`tb_logs`.`operation_date` AS `operation_date`,`tb_logs`.`operation_status` AS `operation_status` from `tb_logs` where ((`tb_logs`.`table_name` = 'tbc_payment_methods_types') and (`tb_logs`.`operation_status` = 0x01)) */;
+/*!50001 SET character_set_client      = @saved_cs_client */;
+/*!50001 SET character_set_results     = @saved_cs_results */;
+/*!50001 SET collation_connection      = @saved_col_connection */;
+
+--
+-- Final view structure for view `vw_trazabilidad_people`
+--
+
+/*!50001 DROP VIEW IF EXISTS `vw_trazabilidad_people`*/;
+/*!50001 SET @saved_cs_client          = @@character_set_client */;
+/*!50001 SET @saved_cs_results         = @@character_set_results */;
+/*!50001 SET @saved_col_connection     = @@collation_connection */;
+/*!50001 SET character_set_client      = utf8mb4 */;
+/*!50001 SET character_set_results     = utf8mb4 */;
+/*!50001 SET collation_connection      = utf8mb4_0900_ai_ci */;
+/*!50001 CREATE ALGORITHM=UNDEFINED */
+/*!50013 DEFINER=`root`@`localhost` SQL SECURITY DEFINER */
+/*!50001 VIEW `vw_trazabilidad_people` AS select `tb_logs`.`ID` AS `ID`,`tb_logs`.`table_name` AS `table_name`,`tb_logs`.`operation` AS `operation`,`tb_logs`.`db_user` AS `db_user`,`tb_logs`.`description` AS `description`,`tb_logs`.`operation_date` AS `operation_date`,`tb_logs`.`operation_status` AS `operation_status` from `tb_logs` where (`tb_logs`.`table_name` = 'tb_people') */;
 /*!50001 SET character_set_client      = @saved_cs_client */;
 /*!50001 SET character_set_results     = @saved_cs_results */;
 /*!50001 SET collation_connection      = @saved_col_connection */;
@@ -2515,4 +2587,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-21 18:39:21
+-- Dump completed on 2026-10-22  8:55:08

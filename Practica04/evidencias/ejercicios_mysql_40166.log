@@ -1,0 +1,25 @@
+Salida del script Practica04/scripts/04_ejecutar_ejercicios.sh (MySQL 8.4, puerto 40166)
+
+EJ5 sin rol (jose.maria)
+ERROR 1142 (42000): UPDATE command denied to user 'jose.maria'@'127.0.0.1' for table 'tb_users'
+ERROR 1142 (42000): DELETE command denied to user 'jose.maria'@'127.0.0.1' for table 'tb_users'
+EJ6 support (carlos.rene): UPDATE permitido
+ERROR 1142 (42000): DELETE command denied to user 'carlos.rene'@'127.0.0.1' for table 'tb_users'
+
+Resumen (adrian.rios): usuarios=8, personas=3, productos=5007
+id  email                 nickname
+1   root_u1@test.com      root_u1
+2   root_u2@test.com      root_u2_mod_support
+3   root_u3@test.com      root_u3
+4   norol_u1@test.com     norol_u1_mod
+5   norol_u2@test.com     norol_u2
+7   support_u1@test.com   support_u1
+8   support_u2@test.com   support_u2
+9   support_u3@test.com   support_u3
+
+tb_logs por usuario:
+adrian.rios  Create tb_products 4 | Create tb_users 6 | Update tb_users 2 | Delete tb_users 2
+carlos.rene  Create tb_people 3 | Create tb_users 6 | Update tb_users 2
+erick.uriel  Create tb_products 10000
+jose.maria   Create tb_users 6
+juan.pablo   Create tb_products 10

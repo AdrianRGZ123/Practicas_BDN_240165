@@ -1,0 +1,80 @@
+######## EJ1: ROOT inserta 3 usuarios
+
+>>> [adrian.rios] INSERT INTO tb_users (email,nickname,password) VALUES ('root_u1@test.com','root_u1',MD5('Pass123*'));
+
+>>> [adrian.rios] INSERT INTO tb_users (email,nickname,password) VALUES ('root_u2@test.com','root_u2',MD5('Pass123*'));
+
+>>> [adrian.rios] INSERT INTO tb_users (email,nickname,password) VALUES ('root_u3@test.com','root_u3',MD5('Pass123*'));
+######## EJ2: SIN ROL inserta 3 usuarios
+
+>>> [jose.maria] INSERT INTO tb_users (email,nickname,password) VALUES ('norol_u1@test.com','norol_u1',MD5('Pass123*'));
+
+>>> [jose.maria] INSERT INTO tb_users (email,nickname,password) VALUES ('norol_u2@test.com','norol_u2',MD5('Pass123*'));
+
+>>> [jose.maria] INSERT INTO tb_users (email,nickname,password) VALUES ('norol_u3@test.com','norol_u3',MD5('Pass123*'));
+######## EJ3: SUPPORT inserta 3 usuarios (via sp_register_user_with_person, solo tiene EXECUTE)
+
+>>> [carlos.rene] CALL sp_register_user_with_person('support_u1@test.com','support_u1','Pass123*','Sr','Support1','Prueba','2000-01-01',1,'MX','5550000001');
+
+>>> [carlos.rene] CALL sp_register_user_with_person('support_u2@test.com','support_u2','Pass123*','Sr','Support2','Prueba','2000-01-02',1,'MX','5550000002');
+
+>>> [carlos.rene] CALL sp_register_user_with_person('support_u3@test.com','support_u3','Pass123*','Sr','Support3','Prueba','2000-01-03',1,'MX','5550000003');
+######## EJ4: ROOT modifica y elimina un usuario que no es el suyo
+
+>>> [adrian.rios] UPDATE tb_users SET nickname='norol_u1_mod' WHERE email='norol_u1@test.com';
+
+>>> [adrian.rios] DELETE FROM tb_users WHERE email='norol_u3@test.com';
+######## EJ5: SIN ROL intenta modificar y eliminar (ESPERADO: ERROR 1142)
+
+>>> [jose.maria] UPDATE tb_users SET nickname='hack' WHERE email='root_u1@test.com';
+ERROR 1142 (42000) at line 1: UPDATE command denied to user 'jose.maria'@'127.0.0.1' for table 'tb_users'
+
+>>> [jose.maria] DELETE FROM tb_users WHERE email='root_u1@test.com';
+ERROR 1142 (42000) at line 1: DELETE command denied to user 'jose.maria'@'127.0.0.1' for table 'tb_users'
+######## EJ6: SUPPORT modifica (permitido) y elimina (ESPERADO: ERROR 1142 en el DELETE)
+
+>>> [carlos.rene] UPDATE tb_users SET nickname='root_u2_mod_support' WHERE email='root_u2@test.com';
+
+>>> [carlos.rene] DELETE FROM tb_users WHERE email='root_u2@test.com';
+ERROR 1142 (42000) at line 1: DELETE command denied to user 'carlos.rene'@'127.0.0.1' for table 'tb_users'
+######## EJ7: ROOT inserta 2 productos
+
+>>> [adrian.rios] INSERT INTO tb_products (sku,name,description,current_price,current_stock) VALUES ('ROOT-0001','Producto root 1','Insertado por root',100.00,10),('ROOT-0002','Producto root 2','Insertado por root',200.00,20);
+######## EJ8: VENDEDOR 1 inserta 5 productos
+
+>>> [juan.pablo] INSERT INTO tb_products (sku,name,description,current_price,current_stock) VALUES ('V1-0001','Producto V1-1','Vendedor 1',10.00,5),('V1-0002','Producto V1-2','Vendedor 1',20.00,5),('V1-0003','Producto V1-3','Vendedor 1',30.00,5),('V1-0004','Producto V1-4','Vendedor 1',40.00,5),('V1-0005','Producto V1-5','Vendedor 1',50.00,5);
+######## EJ9: VENDEDOR 2 importa los 5000 productos del CSV
+
+>>> [erick.uriel] LOAD DATA LOCAL INFILE '/tmp/tb_products_5000.csv' INTO TABLE tb_products CHARACTER SET utf8mb4 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' LINES TERMINATED BY '\r\n' IGNORE 1 LINES (@id,sku,name,description,current_price,current_stock,@st,creation_date,last_update) SET status=@st+0;
+
+######## RESUMEN (root)
+
+>>> [adrian.rios] SELECT COUNT(*) AS usuarios FROM tb_users; SELECT COUNT(*) AS personas FROM tb_people; SELECT COUNT(*) AS productos FROM tb_products; SELECT id,email,nickname FROM tb_users;
+usuarios
+8
+personas
+3
+productos
+5007
+id	email	nickname
+1	root_u1@test.com	root_u1
+2	root_u2@test.com	root_u2_mod_support
+3	root_u3@test.com	root_u3
+4	norol_u1@test.com	norol_u1_mod
+5	norol_u2@test.com	norol_u2
+7	support_u1@test.com	support_u1
+8	support_u2@test.com	support_u2
+9	support_u3@test.com	support_u3
+
+>>> [adrian.rios] SELECT db_user, operation, table_name, COUNT(*) total FROM tb_logs GROUP BY db_user, operation, table_name ORDER BY db_user;
+db_user	operation	table_name	total
+adrian.rios@127.0.0.1	Create	tb_products	4
+adrian.rios@127.0.0.1	Create	tb_users	6
+adrian.rios@127.0.0.1	Update	tb_users	2
+adrian.rios@127.0.0.1	Delete	tb_users	2
+carlos.rene@127.0.0.1	Create	tb_people	3
+carlos.rene@127.0.0.1	Create	tb_users	6
+carlos.rene@127.0.0.1	Update	tb_users	2
+erick.uriel@127.0.0.1	Create	tb_products	10000
+jose.maria@127.0.0.1	Create	tb_users	6
+juan.pablo@127.0.0.1	Create	tb_products	10

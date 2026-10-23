@@ -1,7 +1,7 @@
 #!/bin/bash
-# Uso (en el VPS): bash ~/scripts/04_ejecutar_ejercicios.sh
+# Uso (en el VPS): bash ~/Examen_240165/scripts/04_ejecutar_ejercicios.sh
 # Ejecuta cada ejercicio con el usuario indicado. Los ERROR 1142 marcados "ESPERADO" son la prueba de que el permiso se niega.
-OUT=~/evidencias_ejercicios.log
+OUT=~/Examen_240165/queries/ejercicios_mysql_40166.log
 exec > >(tee "$OUT") 2>&1
 run() { # usuario password sql
   echo; echo ">>> [$1] $3"
@@ -33,7 +33,7 @@ run $ROOT $RP "INSERT INTO tb_products (sku,name,description,current_price,curre
 echo "######## EJ8: VENDEDOR 1 inserta 5 productos"
 run $V1 $V1P "INSERT INTO tb_products (sku,name,description,current_price,current_stock) VALUES ('V1-0001','Producto V1-1','Vendedor 1',10.00,5),('V1-0002','Producto V1-2','Vendedor 1',20.00,5),('V1-0003','Producto V1-3','Vendedor 1',30.00,5),('V1-0004','Producto V1-4','Vendedor 1',40.00,5),('V1-0005','Producto V1-5','Vendedor 1',50.00,5);"
 echo "######## EJ9: VENDEDOR 2 importa los 5000 productos del CSV"
-docker cp ~/seeds/tb_products_5000.csv mysql40166:/tmp/tb_products_5000.csv
+docker cp ~/Examen_240165/seeds/tb_products_5000.csv mysql40166:/tmp/tb_products_5000.csv
 run $V2 $V2P "LOAD DATA LOCAL INFILE '/tmp/tb_products_5000.csv' INTO TABLE tb_products CHARACTER SET utf8mb4 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"' LINES TERMINATED BY '\r\n' IGNORE 1 LINES (@id,sku,name,description,current_price,current_stock,@st,creation_date,last_update) SET status=@st+0;"
 
 echo; echo "######## RESUMEN (root)"

@@ -1,0 +1,24 @@
+Prueba de conexion remota desde un cliente EXTERNO (PC del estudiante, sin SSH) - 2026-10-23 15:03:17
+Cliente: Python (PyMySQL / psycopg2) por TCP hacia el VPS; las consultas no pasan por SSH ni por el interior de los contenedores.
+
+== PostgreSQL 17 - puerto 40165 - cuenta administradora: adrian_rios (rol superadmin) ==
+version: PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linu
+usuario/puerto: ('adrian_rios', 'adrian_rios', 40165)
+tablas en db_test: 16
+productos: 5007
+rol(es): ['superadmin']
+contrasena incorrecta -> rechazada: connection to server at "IP_DEL_VPS", port 40165 failed: FATAL:  password au
+
+== MySQL 8.4 - puerto 40166 - cuenta administradora: adrian.rios (rol superadmin) ==
+version/usuario/puerto: ('8.4.13', 'adrian.rios@%', 40166)
+tablas en db_test: 16
+productos: 5007
+rol activo: `superadmin`@`%`
+contrasena incorrecta -> rechazada: (1045, "Access denied for user 'adrian.rios'@'IP_CLIENTE' (using password: Y
+
+== Puertos visibles desde internet (TCP) ==
+40165 PostgreSQL: abierto
+40166 MySQL: abierto
+40167 pgAdmin Web: abierto
+ 3306 MySQL por defecto (no publicado): cerrado
+ 5432 PostgreSQL por defecto (no publicado): cerrado

@@ -1,0 +1,74 @@
+fecha: 2026-10-23 20:57:58  | imagen: mysql:8.4 (contenedor desechable)
+Esperando a MySQL... listo
+
+== Carga de sql/mysql.sql (1a vez) ==
+mensaje
+Base de datos, tablas, triggers, vistas, roles, cuentas y privilegios creados en MySQL
+== Carga de sql/mysql.sql (2a vez, comprueba que se puede repetir) ==
+mensaje
+Base de datos, tablas, triggers, vistas, roles, cuentas y privilegios creados en MySQL
+
+== Objetos creados en db_test ==
+tablas	16
+vistas	18
+triggers	51
+procedimientos	4
+== Contador de ID reiniciado (AUTO_INCREMENT) ==
+tb_logs	1
+tb_people	1
+tb_products	1
+tb_users	1
+== Roles (cuentas sin login) y cuentas personales con su rol ==
+admin
+buyer
+common
+not_registered
+seller
+superadmin
+support
+adrian.rios	superadmin
+app_movil	not_registered
+app_web	not_registered
+carlos.rene	support
+erick.uriel	seller
+jose.maria	(sin rol)
+juan.pablo	seller
+marco.ramirez	admin
+== Privilegios de los roles ==
+-- superadmin
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, SHUTDOWN, PROCESS, FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE, DROP ROLE ON *.* TO `superadmin`@`%`
+GRANT ALLOW_NONEXISTENT_DEFINER,APPLICATION_PASSWORD_ADMIN,AUDIT_ABORT_EXEMPT,AUDIT_ADMIN,AUTHENTICATION_POLICY_ADMIN,BACKUP_ADMIN,BINLOG_ADMIN,BINLOG_ENCRYPTION_ADMIN,CLONE_ADMIN,CONNECTION_ADMIN,ENCRYPTION_KEY_ADMIN,FIREWALL_EXEMPT,FLUSH_OPTIMIZER_COSTS,FLUSH_PRIVILEGES,FLUSH_STATUS,FLUSH_TABLES,FLUSH_USER_RESOURCES,GROUP_REPLICATION_ADMIN,GROUP_REPLICATION_STREAM,INNODB_REDO_LOG_ARCHIVE,INNODB_REDO_LOG_ENABLE,OPTIMIZE_LOCAL_TABLE,PASSWORDLESS_USER_ADMIN,PERSIST_RO_VARIABLES_ADMIN,REPLICATION_APPLIER,REPLICATION_SLAVE_ADMIN,RESOURCE_GROUP_ADMIN,RESOURCE_GROUP_USER,ROLE_ADMIN,SENSITIVE_VARIABLES_OBSERVER,SERVICE_CONNECTION_ADMIN,SESSION_VARIABLES_ADMIN,SET_ANY_DEFINER,SHOW_ROUTINE,SYSTEM_USER,SYSTEM_VARIABLES_ADMIN,TABLE_ENCRYPTION_ADMIN,TELEMETRY_LOG_ADMIN,TRANSACTION_GTID_TAG,XA_RECOVER_ADMIN ON *.* TO `superadmin`@`%`
+-- admin
+GRANT USAGE ON *.* TO `admin`@`%`
+GRANT ALL PRIVILEGES ON `db_test`.* TO `admin`@`%`
+-- support
+GRANT USAGE ON *.* TO `support`@`%`
+GRANT EXECUTE ON `db_test`.* TO `support`@`%`
+GRANT SELECT, UPDATE ON `db_test`.`tb_products` TO `support`@`%`
+GRANT SELECT, UPDATE ON `db_test`.`tb_users` TO `support`@`%`
+GRANT SELECT, INSERT, UPDATE ON `db_test`.`tbc_categories` TO `support`@`%`
+-- seller
+GRANT USAGE ON *.* TO `seller`@`%`
+GRANT SELECT, INSERT, UPDATE ON `db_test`.`tb_products` TO `seller`@`%`
+-- buyer
+GRANT USAGE ON *.* TO `buyer`@`%`
+GRANT SELECT ON `db_test`.`tb_products` TO `buyer`@`%`
+GRANT SELECT ON `db_test`.`tbc_categories` TO `buyer`@`%`
+-- common
+GRANT USAGE ON *.* TO `common`@`%`
+GRANT SELECT ON `db_test`.`tb_products` TO `common`@`%`
+GRANT SELECT ON `db_test`.`tbc_categories` TO `common`@`%`
+-- not_registered
+GRANT USAGE ON *.* TO `not_registered`@`%`
+GRANT INSERT ON `db_test`.`tb_people` TO `not_registered`@`%`
+GRANT INSERT ON `db_test`.`tb_users` TO `not_registered`@`%`
+-- jose.maria (sin rol)
+GRANT USAGE ON *.* TO `jose.maria`@`%`
+GRANT INSERT ON `db_test`.`tb_people` TO `jose.maria`@`%`
+GRANT INSERT ON `db_test`.`tb_users` TO `jose.maria`@`%`
+
+== Funcionamiento: insertar con una cuenta y revisar trigger y vista ==
+Create	juan.pablo@localhost	tb_products
+Create	juan.pablo@localhost	tb_products
+
+Contenedor desechable eliminado.

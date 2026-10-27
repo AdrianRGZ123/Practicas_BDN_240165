@@ -1,0 +1,52 @@
+Conexion remota a MySQL desde un cliente EXTERNO (PC del estudiante, sin SSH) - 2026-10-23 15:46:14
+Cliente: mysql.exe 8.0 (MySQL Server 8.0 instalado en el PC)
+Comando: mysql.exe -h IP_DEL_VPS -P 40166 -u adrian.rios db_test -t -e "SELECT VERSION() AS version, CURRENT_USER() AS usuario, @@port AS puerto, CURRENT_ROLE() AS rol_activo; SHOW FULL TABLES; SELECT COUNT(*) AS productos FROM tb_products;"
+
++---------+---------------+--------+------------------+
+| version | usuario       | puerto | rol_activo       |
++---------+---------------+--------+------------------+
+| 8.4.13  | adrian.rios@% |  40166 | `superadmin`@`%` |
++---------+---------------+--------+------------------+
++------------------------------------------+------------+
+| Tables_in_db_test                        | Table_type |
++------------------------------------------+------------+
+| tb_carts                                 | BASE TABLE |
+| tb_logs                                  | BASE TABLE |
+| tb_people                                | BASE TABLE |
+| tb_products                              | BASE TABLE |
+| tb_seller_orders                         | BASE TABLE |
+| tb_user_addresses                        | BASE TABLE |
+| tb_users                                 | BASE TABLE |
+| tbc_categories                           | BASE TABLE |
+| tbc_payment_methods_types                | BASE TABLE |
+| tbd_address_components                   | BASE TABLE |
+| tbd_cart_items                           | BASE TABLE |
+| tbd_order_items                          | BASE TABLE |
+| tbd_products_categories                  | BASE TABLE |
+| tbd_products_users_providers             | BASE TABLE |
+| tbd_user_payment_methods                 | BASE TABLE |
+| tbd_users_wishlist_products              | BASE TABLE |
+| vw_total_products_by_category            | VIEW       |
+| vw_total_products_by_category1           | VIEW       |
+| vw_trazabilidad_address_components       | VIEW       |
+| vw_trazabilidad_cart_items               | VIEW       |
+| vw_trazabilidad_carts                    | VIEW       |
+| vw_trazabilidad_categorias               | VIEW       |
+| vw_trazabilidad_logs                     | VIEW       |
+| vw_trazabilidad_order_items              | VIEW       |
+| vw_trazabilidad_payment_methods_types    | VIEW       |
+| vw_trazabilidad_people                   | VIEW       |
+| vw_trazabilidad_productos                | VIEW       |
+| vw_trazabilidad_products_categories      | VIEW       |
+| vw_trazabilidad_products_users_providers | VIEW       |
+| vw_trazabilidad_seller_orders            | VIEW       |
+| vw_trazabilidad_user_addresses           | VIEW       |
+| vw_trazabilidad_user_payment_methods     | VIEW       |
+| vw_trazabilidad_users_wishlist_products  | VIEW       |
+| vw_trazabilidad_usuarios                 | VIEW       |
++------------------------------------------+------------+
++-----------+
+| productos |
++-----------+
+|      5007 |
++-----------+

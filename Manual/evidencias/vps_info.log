@@ -1,0 +1,49 @@
+fecha: 2026-10-23 21:02:39
+== Sistema operativo ==
+Ubuntu 26.04.1 LTS
+Linux 7.0.0-38-generic
+srv2060502
+== Direccion IP ==
+179.236.78.124 172.16.0.1 172.16.1.1 2a02:4780:95:f7c::1 
+== Recursos ==
+CPU: 2 nucleos
+               total        used        free      shared  buff/cache   available
+Mem:           7.7Gi       1.8Gi       2.5Gi        17Mi       3.7Gi       5.9Gi
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda1        96G  5.9G   90G   7% /
+== Cuentas del sistema operativo (uid >= 1000) y sus grupos ==
+user240628: user240628,users,docker
+user240808: user240808,users,docker
+user240763: user240763,users,docker
+user240161: user240161,users,docker
+user240165: user240165,users,docker
+user240201: user240201,users,docker
+== Sesion actual ==
+uid=1004(user240165) gid=1004(user240165) groups=1004(user240165),100(users),986(docker)
+== Herramientas ==
+git version 2.53.0
+Docker version 29.1.3, build 29.1.3-0ubuntu4.1
+Docker Compose version v5.6.0
+== Contenedores ==
+NAMES           IMAGE                   STATUS                    PORTS
+postgres40165   postgres:17             Up 14 seconds (healthy)   5432/tcp, 0.0.0.0:40165->40165/tcp, [::]:40165->40165/tcp
+mysql40166      mysql:8.4               Up 14 seconds (healthy)   3306/tcp, 33060/tcp, 0.0.0.0:40166->40166/tcp, [::]:40166->40166/tcp
+pgadmin240165   dpage/pgadmin4:latest   Up 17 minutes             443/tcp, 0.0.0.0:40167->80/tcp, [::]:40167->80/tcp
+== Volumenes y datos persistentes ==
+bdn240165_pgadmin_data
+drwxr-xr-x  8 dnsmasq root 4096 Oct 23 21:02 /home/user240165/mysql_data
+drwx------ 19 dnsmasq root 4096 Oct 23 21:02 /home/user240165/postgres_data
+== Puertos publicados ==
+LISTEN 0      4096         0.0.0.0:40165      0.0.0.0:*   
+LISTEN 0      4096         0.0.0.0:40167      0.0.0.0:*   
+LISTEN 0      4096         0.0.0.0:40166      0.0.0.0:*   
+LISTEN 0      4096            [::]:40165         [::]:*   
+LISTEN 0      4096            [::]:40167         [::]:*   
+LISTEN 0      4096            [::]:40166         [::]:*   
+== Firewall (ufw) ==
+ERROR: You need to be root to run this script
+(sin sudo no se puede listar ufw; Docker publica solo 40165, 40166 y 40167)
+== Registros recientes (errores criticos) ==
+-- postgres40165: 0 lineas con FATAL/PANIC/CRITICAL
+-- mysql40166: 0 lineas con FATAL/PANIC/CRITICAL
+-- pgadmin240165: 0 lineas con FATAL/PANIC/CRITICAL

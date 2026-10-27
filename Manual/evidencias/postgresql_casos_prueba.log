@@ -1,0 +1,143 @@
+Servidor: PostgreSQL 17.11 (Debian 17.11-1.pgdg13+  | fecha: 2026-10-23 20:50:20
+
+######## CASO 01: superadmin (adrian_rios) inserta 3 usuarios
+
+>>> [adrian_rios] INSERT INTO tb_users (email,nickname,password) VALUES ('root_u1@test.com','root_u1',md5('Pass123*'));
+INSERT 0 1
+
+>>> [adrian_rios] INSERT INTO tb_users (email,nickname,password) VALUES ('root_u2@test.com','root_u2',md5('Pass123*'));
+INSERT 0 1
+
+>>> [adrian_rios] INSERT INTO tb_users (email,nickname,password) VALUES ('root_u3@test.com','root_u3',md5('Pass123*'));
+INSERT 0 1
+
+######## CASO 02: usuario SIN ROL (jose_maria) inserta 3 usuarios
+
+>>> [jose_maria] INSERT INTO tb_users (email,nickname,password) VALUES ('norol_u1@test.com','norol_u1',md5('Pass123*'));
+INSERT 0 1
+
+>>> [jose_maria] INSERT INTO tb_users (email,nickname,password) VALUES ('norol_u2@test.com','norol_u2',md5('Pass123*'));
+INSERT 0 1
+
+>>> [jose_maria] INSERT INTO tb_users (email,nickname,password) VALUES ('norol_u3@test.com','norol_u3',md5('Pass123*'));
+INSERT 0 1
+
+######## CASO 03: support (carlos_rene) inserta 3 usuarios (funcion sp_register_user_with_person)
+
+>>> [carlos_rene] SELECT sp_register_user_with_person('support_u1@test.com','support_u1','Pass123*','Sr','Support1','Prueba','2000-01-01',1::smallint,'MX','5550000001');
+ sp_register_user_with_person 
+------------------------------
+                            7
+(1 row)
+
+
+>>> [carlos_rene] SELECT sp_register_user_with_person('support_u2@test.com','support_u2','Pass123*','Sr','Support2','Prueba','2000-01-02',1::smallint,'MX','5550000002');
+ sp_register_user_with_person 
+------------------------------
+                            8
+(1 row)
+
+
+>>> [carlos_rene] SELECT sp_register_user_with_person('support_u3@test.com','support_u3','Pass123*','Sr','Support3','Prueba','2000-01-03',1::smallint,'MX','5550000003');
+ sp_register_user_with_person 
+------------------------------
+                            9
+(1 row)
+
+
+######## CASO 04: superadmin modifica y elimina un usuario que no es el suyo
+
+>>> [adrian_rios] UPDATE tb_users SET nickname='norol_u1_mod' WHERE email='norol_u1@test.com';
+UPDATE 1
+
+>>> [adrian_rios] DELETE FROM tb_users WHERE email='norol_u3@test.com';
+DELETE 1
+
+######## CASO 05: usuario SIN ROL intenta modificar y eliminar (ESPERADO: ERROR permission denied)
+
+>>> [jose_maria] UPDATE tb_users SET nickname='hack' WHERE email='root_u1@test.com';
+ERROR:  permission denied for table tb_users
+
+>>> [jose_maria] DELETE FROM tb_users WHERE email='root_u1@test.com';
+ERROR:  permission denied for table tb_users
+
+######## CASO 06: support modifica (permitido) y elimina (ESPERADO: ERROR en el DELETE)
+
+>>> [carlos_rene] UPDATE tb_users SET nickname='root_u2_mod_support' WHERE email='root_u2@test.com';
+UPDATE 1
+
+>>> [carlos_rene] DELETE FROM tb_users WHERE email='root_u2@test.com';
+ERROR:  permission denied for table tb_users
+
+######## CASO 07: superadmin inserta 2 productos
+
+>>> [adrian_rios] INSERT INTO tb_products (sku,name,description,current_price,current_stock) VALUES ('ROOT-0001','Producto root 1','Insertado por root',100.00,10),('ROOT-0002','Producto root 2','Insertado por root',200.00,20);
+INSERT 0 2
+
+######## CASO 08: seller 1 (juan_pablo) inserta 5 productos
+
+>>> [juan_pablo] INSERT INTO tb_products (sku,name,description,current_price,current_stock) VALUES ('V1-0001','Producto V1-1','Vendedor 1',10.00,5),('V1-0002','Producto V1-2','Vendedor 1',20.00,5),('V1-0003','Producto V1-3','Vendedor 1',30.00,5),('V1-0004','Producto V1-4','Vendedor 1',40.00,5),('V1-0005','Producto V1-5','Vendedor 1',50.00,5);
+INSERT 0 5
+
+######## CASO 09: seller 2 (erick_uriel) importa los 5000 productos del CSV
+lstat /home/user240165/Manual_VPS_BDs_Relacionales/seeds: no such file or directory
+>>> [erick_uriel] CREATE TEMP TABLE + \copy del CSV + INSERT ... SELECT
+CREATE TABLE
+/tmp/tb_products_5000.csv: No such file or directory
+
+######## RESUMEN Y TRAZABILIDAD (adrian_rios)
+
+>>> [adrian_rios] SELECT (SELECT count(*) FROM tb_users) AS usuarios, (SELECT count(*) FROM tb_people) AS personas, (SELECT count(*) FROM tb_products) AS productos;
+ usuarios | personas | productos 
+----------+----------+-----------
+        8 |        3 |         7
+(1 row)
+
+
+>>> [adrian_rios] SELECT id,email,nickname,status FROM tb_users ORDER BY id;
+ id |        email        |      nickname       | status 
+----+---------------------+---------------------+--------
+  1 | root_u1@test.com    | root_u1             | t
+  2 | root_u2@test.com    | root_u2_mod_support | t
+  3 | root_u3@test.com    | root_u3             | t
+  4 | norol_u1@test.com   | norol_u1_mod        | t
+  5 | norol_u2@test.com   | norol_u2            | t
+  7 | support_u1@test.com | support_u1          | t
+  8 | support_u2@test.com | support_u2          | t
+  9 | support_u3@test.com | support_u3          | t
+(8 rows)
+
+
+>>> [adrian_rios] SELECT db_user, operation, table_name, count(*) FROM tb_logs GROUP BY 1,2,3 ORDER BY 1,3,2;
+        db_user         | operation | table_name  | count 
+------------------------+-----------+-------------+-------
+ adrian_rios@172.16.1.3 | Create    | tb_products |     2
+ adrian_rios@172.16.1.3 | Create    | tb_users    |     3
+ adrian_rios@172.16.1.3 | Update    | tb_users    |     1
+ adrian_rios@172.16.1.3 | Delete    | tb_users    |     1
+ carlos_rene@172.16.1.3 | Create    | tb_people   |     3
+ carlos_rene@172.16.1.3 | Create    | tb_users    |     3
+ carlos_rene@172.16.1.3 | Update    | tb_users    |     1
+ jose_maria@172.16.1.3  | Create    | tb_users    |     3
+ juan_pablo@172.16.1.3  | Create    | tb_products |     5
+(9 rows)
+
+
+>>> [adrian_rios] SELECT id, operation, db_user, left(description,90) AS description FROM vw_trazabilidad_usuarios ORDER BY id LIMIT 6;
+ id | operation |        db_user         |                                        description                                         
+----+-----------+------------------------+--------------------------------------------------------------------------------------------
+  1 | Create    | adrian_rios@172.16.1.3 | Insercion en tb_users: {"id": 1, "email": "root_u1@test.com", "status": true, "nickname": 
+  2 | Create    | adrian_rios@172.16.1.3 | Insercion en tb_users: {"id": 2, "email": "root_u2@test.com", "status": true, "nickname": 
+  3 | Create    | adrian_rios@172.16.1.3 | Insercion en tb_users: {"id": 3, "email": "root_u3@test.com", "status": true, "nickname": 
+  4 | Create    | jose_maria@172.16.1.3  | Insercion en tb_users: {"id": 4, "email": "norol_u1@test.com", "status": true, "nickname":
+  5 | Create    | jose_maria@172.16.1.3  | Insercion en tb_users: {"id": 5, "email": "norol_u2@test.com", "status": true, "nickname":
+  6 | Create    | jose_maria@172.16.1.3  | Insercion en tb_users: {"id": 6, "email": "norol_u3@test.com", "status": true, "nickname":
+(6 rows)
+
+
+>>> [adrian_rios] SELECT count(*) AS productos_en_vista_trazabilidad FROM vw_trazabilidad_productos;
+ productos_en_vista_trazabilidad 
+---------------------------------
+                               7
+(1 row)
+

@@ -1,0 +1,79 @@
+fecha: 2026-10-23 20:51:40
+
+######## CASO 09: seller 2 (erick_uriel) importa los 5000 productos del CSV
+>>> [erick_uriel] CREATE TEMP TABLE + \copy del CSV + INSERT ... SELECT
+CREATE TABLE
+COPY 5000
+ERROR:  null value in column "last_update" of relation "tb_products" violates not-null constraint
+DETAIL:  Failing row contains (10, PROD-MON-00003, Audífonos Sony WH-1000XM5 Cancelación de Ruido Lite - Azul Mar..., Audífonos inalámbricos Over-Ear con la mejor cancelación de r..., 7348.95, 39, t, 2025-01-22 03:03:00, null).
+
+######## RESUMEN Y TRAZABILIDAD (adrian_rios)
+
+>>> [adrian_rios] SELECT (SELECT count(*) FROM tb_users) AS usuarios, (SELECT count(*) FROM tb_people) AS personas, (SELECT count(*) FROM tb_products) AS productos;
+ usuarios | personas | productos 
+----------+----------+-----------
+        8 |        3 |         7
+(1 row)
+
+
+>>> [adrian_rios] SELECT db_user, operation, table_name, count(*) FROM tb_logs GROUP BY 1,2,3 ORDER BY 1,3,2;
+        db_user         | operation | table_name  | count 
+------------------------+-----------+-------------+-------
+ adrian_rios@172.16.1.3 | Create    | tb_products |     2
+ adrian_rios@172.16.1.3 | Create    | tb_users    |     3
+ adrian_rios@172.16.1.3 | Update    | tb_users    |     1
+ adrian_rios@172.16.1.3 | Delete    | tb_users    |     1
+ carlos_rene@172.16.1.3 | Create    | tb_people   |     3
+ carlos_rene@172.16.1.3 | Create    | tb_users    |     3
+ carlos_rene@172.16.1.3 | Update    | tb_users    |     1
+ jose_maria@172.16.1.3  | Create    | tb_users    |     3
+ juan_pablo@172.16.1.3  | Create    | tb_products |     5
+(9 rows)
+
+
+>>> [adrian_rios] SELECT count(*) AS productos_en_vista_trazabilidad FROM vw_trazabilidad_productos;
+ productos_en_vista_trazabilidad 
+---------------------------------
+                               7
+(1 row)
+
+fecha: 2026-10-23 20:52:35
+
+######## CASO 09: seller 2 (erick_uriel) importa los 5000 productos del CSV
+(Si last_update viene vacio en el CSV se usa creation_date: la columna es NOT NULL)
+>>> [erick_uriel] CREATE TEMP TABLE + \copy del CSV + INSERT ... SELECT
+CREATE TABLE
+COPY 5000
+INSERT 0 5000
+
+######## RESUMEN Y TRAZABILIDAD (adrian_rios)
+
+>>> [adrian_rios] SELECT (SELECT count(*) FROM tb_users) AS usuarios, (SELECT count(*) FROM tb_people) AS personas, (SELECT count(*) FROM tb_products) AS productos;
+ usuarios | personas | productos 
+----------+----------+-----------
+        8 |        3 |      5007
+(1 row)
+
+
+>>> [adrian_rios] SELECT db_user, operation, table_name, count(*) FROM tb_logs GROUP BY 1,2,3 ORDER BY 1,3,2;
+        db_user         | operation | table_name  | count 
+------------------------+-----------+-------------+-------
+ adrian_rios@172.16.1.3 | Create    | tb_products |     2
+ adrian_rios@172.16.1.3 | Create    | tb_users    |     3
+ adrian_rios@172.16.1.3 | Update    | tb_users    |     1
+ adrian_rios@172.16.1.3 | Delete    | tb_users    |     1
+ carlos_rene@172.16.1.3 | Create    | tb_people   |     3
+ carlos_rene@172.16.1.3 | Create    | tb_users    |     3
+ carlos_rene@172.16.1.3 | Update    | tb_users    |     1
+ erick_uriel@172.16.1.3 | Create    | tb_products |  5000
+ jose_maria@172.16.1.3  | Create    | tb_users    |     3
+ juan_pablo@172.16.1.3  | Create    | tb_products |     5
+(10 rows)
+
+
+>>> [adrian_rios] SELECT count(*) AS productos_en_vista_trazabilidad FROM vw_trazabilidad_productos;
+ productos_en_vista_trazabilidad 
+---------------------------------
+                            5007
+(1 row)
+

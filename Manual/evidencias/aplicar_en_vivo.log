@@ -1,0 +1,103 @@
+fecha: 2026-10-23 21:51:35
+
+== 1. Rotacion de contrasenas ==
+root de MySQL rotado
+postgres rotado
+Recreando contenedores con el .env nuevo (los datos persisten en volumenes)...
+ Container postgres40165 Started 
+ Container postgres40165 Waiting 
+ Container mysql40166 Started 
+ Container postgres40165 Healthy 
+mysql40166: healthy | postgres40165: healthy
+
+== 2. Aplicar sql/mysql.sql al MySQL en ejecucion ==
+mensaje
+Base de datos, tablas, triggers, vistas, roles, cuentas y privilegios creados en MySQL
+
+== 3. Ajustes sobre las tablas existentes ==
+llaves foraneas: ya compuestas
+roles antiguos (common_user, user_not_registered) eliminados; contrasenas de cuentas rotadas
+
+== 4. Re-aplicar sql/postgresql.sql (contrasenas nuevas) ==
+ Roles, cuentas, base de datos, tablas, triggers, vistas y privilegios creados en PostgreSQL
+(1 row)
+
+
+== 5. Verificacion MySQL ==
+tablas	16
+vistas	18
+triggers	51
+productos	5007
+usuarios	8
+-- roles:
+admin
+buyer
+common
+not_registered
+seller
+superadmin
+support
+-- cuentas y rol:
+adrian.rios	superadmin
+app_movil	not_registered
+app_web	not_registered
+carlos.rene	support
+erick.uriel	seller
+jose.maria	(sin rol)
+juan.pablo	seller
+marco.ramirez	admin
+-- privilegios de los roles:
+[admin]
+GRANT ALL PRIVILEGES ON `db_test`.* TO `admin`@`%`
+[support]
+GRANT EXECUTE ON `db_test`.* TO `support`@`%`
+GRANT SELECT, UPDATE ON `db_test`.`tb_products` TO `support`@`%`
+GRANT SELECT, UPDATE ON `db_test`.`tb_users` TO `support`@`%`
+GRANT SELECT, INSERT, UPDATE ON `db_test`.`tbc_categories` TO `support`@`%`
+[seller]
+GRANT SELECT, INSERT, UPDATE ON `db_test`.`tb_products` TO `seller`@`%`
+[buyer]
+GRANT SELECT ON `db_test`.`tb_products` TO `buyer`@`%`
+GRANT SELECT ON `db_test`.`tbc_categories` TO `buyer`@`%`
+[common]
+GRANT SELECT ON `db_test`.`tb_products` TO `common`@`%`
+GRANT SELECT ON `db_test`.`tbc_categories` TO `common`@`%`
+[not_registered]
+GRANT INSERT ON `db_test`.`tb_people` TO `not_registered`@`%`
+GRANT INSERT ON `db_test`.`tb_users` TO `not_registered`@`%`
+[superadmin] 1 linea(s) con privilegios globales
+
+== 6. Verificacion PostgreSQL ==
+== Contenedores ==
+NAME            STATUS                    PORTS
+mysql40166      Up 13 seconds (healthy)   3306/tcp, 33060/tcp, 0.0.0.0:40166->40166/tcp, [::]:40166->40166/tcp
+pgadmin240165   Up About an hour          443/tcp, 0.0.0.0:40167->80/tcp, [::]:40167->80/tcp
+postgres40165   Up 13 seconds (healthy)   5432/tcp, 0.0.0.0:40165->40165/tcp, [::]:40165->40165/tcp
+== PostgreSQL: version ==
+PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on x86_64-pc-linu
+== PostgreSQL: tablas / triggers / vistas / funciones ==
+16
+58
+4
+4
+== PostgreSQL: roles y membresias ==
+adrian_rios|superadmin
+app_movil|not_registered
+app_web|not_registered
+carlos_rene|support
+erick_uriel|seller
+jose_maria|(sin rol)
+juan_pablo|seller
+marco_ramirez|admin
+admin|f
+buyer|f
+common|f
+not_registered|f
+seller|f
+superadmin|f
+support|f
+== MySQL: db_test conserva sus datos ==
+16
+5007
+== pgAdmin ==
+HTTP 200 en puerto 40167

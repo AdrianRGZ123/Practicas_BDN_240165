@@ -7,4 +7,4 @@ Perido:Sepmtiembre  - Diciembre 2026
 |ID|Numero de Practicas|Nombre de las Practicas|Potenciador|Estatus|
 |---|---|---|---|---|
 |1.| Prácatica 02|Conexión Remota en MySQL|42|🟢 Conlcuida|
-|2. |Conexiones Remotas para Bases de Datos SQL| Crear y administrar usuarios y privilegios para conexiones desde internet o redes locales|??|🟢 Conlcuida|
+|2. |Conexiones Remotas para Bases de Datos SQL| Crear y administrar usuarios y privilegios para conexiones desde internet o redes locales|??|🟢 Conlcuida|..

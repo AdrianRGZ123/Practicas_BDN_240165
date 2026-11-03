@@ -1,6 +1,6 @@
 # Diccionario de datos — `db_test`
 
-> Fuente: `Respaldo 21-10-26.sql`. El encabezado del dump indica MySQL 8.0.42; el objetivo solicitado es 8.0.36. Se extrajo únicamente DDL y se omitieron INSERT y datos.
+> Fuente: `Respaldo 28-10-26.sql`. El encabezado del dump indica MySQL 8.0.42; el objetivo solicitado es 8.0.36. Se extrajo únicamente DDL y se omitieron INSERT y datos.
 
 ## Índice
 
@@ -9,18 +9,21 @@
 3. [Vistas](#vistas)
 4. [Triggers](#triggers)
 5. [Procedimientos almacenados](#procedimientos-almacenados)
-6. [Dominios y convenciones](#dominios-y-convenciones)
-7. [Observaciones de diseño](#observaciones-de-diseño)
-8. [Pendientes por confirmar](#pendientes-por-confirmar)
+6. [Funciones almacenadas](#funciones-almacenadas)
+7. [Dominios y convenciones](#dominios-y-convenciones)
+8. [Observaciones de diseño](#observaciones-de-diseño)
+9. [Pendientes por confirmar](#pendientes-por-confirmar)
+10. [Diagrama entidad-relación](#diagrama-entidad-relación)
 
 ## Resumen ejecutivo
 
 | Elemento | Conteo |
 |---|---:|
-| Tablas | 16 |
-| Vistas | 18 |
-| Triggers | 51 |
-| Procedimientos | 4 |
+| Tablas | 27 |
+| Vistas | 29 |
+| Triggers | 84 |
+| Procedimientos | 6 |
+| Funciones | 4 |
 
 Conteos comunicados en la solicitud; no se recalculan desde el DDL:
 
@@ -73,6 +76,122 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 **Relaciones:** No hay relaciones FK declaradas.
 **Triggers asociados:** Ninguno.
 
+### `tb_order_cancellations`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Solicitudes de cancelación de una orden completa, de una orden de vendedor o de ciertos ítems, con su estado de revisión.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de order cancellations. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `order_ID` | `int unsigned` | SÍ | `NULL` | — | FK | Orden a la que pertenece el registro. Referencia a `tb_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_ID ∈ ℤ⁺`. |
+| 3 | `buyer_order_ID` | `int unsigned` | SÍ | `NULL` | — | FK | Orden de vendedor/comprador (tbd_buyer_orders) a la que pertenece. Referencia a `tbd_buyer_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tbd_buyer_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `buyer_order_ID ∈ ℤ⁺`. |
+| 4 | `requested_by_user_ID` | `int` | SÍ | `NULL` | — | FK | Usuario que solicitó la operación. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `requested_by_user_ID ∈ ℤ`. |
+| 5 | `cancellation_scope` | `enum ('WholeOrder','SellerOrder','Items')` | NO | `'WholeOrder'` | — | Ninguna | Alcance de la cancelación: orden completa, orden de vendedor o ítems; el CHECK valida qué referencia debe venir informada. Valores: WholeOrder, SellerOrder, Items. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `cancellation_scope ∈ {WholeOrder, SellerOrder, Items}`. |
+| 6 | `reason_code` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Código corto del motivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `reason_code ∈ Cadena` (varchar(60)). |
+| 7 | `reason_detail` | `varchar (1000)` | SÍ | `NULL` | — | Ninguna | Detalle libre del motivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `reason_detail ∈ Cadena` (varchar(1000)). |
+| 8 | `cancellation_status` | `enum ('Requested','Approved','Rejected','Completed')` | NO | `'Requested'` | — | Ninguna | Estado de la solicitud de cancelación. Valores: Requested, Approved, Rejected, Completed. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `cancellation_status ∈ {Requested, Approved, Rejected, Completed}`. |
+| 9 | `requested_at` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de la solicitud. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `requested_at ∈ FechaHora`. |
+| 10 | `reviewed_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de revisión de la solicitud. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `reviewed_at ∈ FechaHora`. |
+| 11 | `completed_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de finalización. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `completed_at ∈ FechaHora`. |
+| 12 | `internal_notes` | `varchar (1000)` | SÍ | `NULL` | — | Ninguna | Notas internas de soporte. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `internal_notes ∈ Cadena` (varchar(1000)). |
+| 13 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 14 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); FK `fk_cancellations_buyer_order` (`buyer_order_ID`) → `tbd_buyer_orders` (`ID`); FK `fk_cancellations_order` (`order_ID`) → `tb_orders` (`ID`); FK `fk_cancellations_requester` (`requested_by_user_ID`) → `tb_users` (`ID`); CHECK `chk_cancellations_target`: (((`cancellation_scope` = _utf8mb4'WholeOrder') and (`order_ID` is not null) and (`buyer_order_ID` is null)) or ((`cancellation_scope` in (_utf8mb4'SellerOrder',_utf8mb4'Items')) and (`buyer_order_ID` is not null))); KEY `idx_cancellations_order` (`order_ID`); KEY `idx_cancellations_buyer_order` (`buyer_order_ID`); KEY `idx_cancellations_requester` (`requested_by_user_ID`)
+**Relaciones:** `fk_cancellations_buyer_order`: `tb_order_cancellations` (buyer_order_ID) → `tbd_buyer_orders` (ID); cardinalidad 1:N padre:hija.; `fk_cancellations_order`: `tb_order_cancellations` (order_ID) → `tb_orders` (ID); cardinalidad 1:N padre:hija.; `fk_cancellations_requester`: `tb_order_cancellations` (requested_by_user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_refunds` mediante `fk_refunds_cancellation`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_cancellation_items` mediante `fk_cancellation_items_cancellation`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tb_order_cancellations_after_insert`, `trg_tb_order_cancellations_after_update`, `trg_tb_order_cancellations_after_delete`
+
+### `tb_orders`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Cabecera de la orden de compra de un comprador: clave de la orden, totales y estado global del ciclo de vida.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de orders. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `key` | `varchar (40)` | NO | `No especificado` | — | Ninguna | Clave de negocio de la orden (cadena de hasta 40 caracteres) que la identifica fuera del ID interno. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `key ∈ Cadena` (varchar(40)). |
+| 3 | `User_ID` | `int` | NO | `No especificado` | — | FK | Usuario comprador dueño de la orden. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `User_ID ∈ ℤ`. |
+| 4 | `total_products` | `int` | NO | `No especificado` | — | Ninguna | Cantidad total de productos incluidos en la orden. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa discreta. Composición formal: =. Dominio formal: `total_products ∈ ℤ`. |
+| 5 | `total_cost` | `decimal (10,3)` | NO | `'0.000'` | — | Ninguna | Costo total de la orden con tres decimales. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `total_cost ∈ ℚ` (decimal(10,3)). |
+| 6 | `status_string` | `enum ('Registered','Payed','Canceled','Delivered','Devolved','Attended','Sended')` | NO | `'Registered'` | — | Ninguna | Estado de ciclo de vida de la orden. Valores: Registered, Payed, Canceled, Delivered, Devolved, Attended, Sended. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status_string ∈ {Registered, Payed, Canceled, Delivered, Devolved, Attended, Sended}`. |
+| 7 | `status` | `bit (1)` | SÍ | `b'1'` | — | Ninguna | Indicador de estado operativo: 1 = activo, 0 = inactivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ {0, 1}`. |
+| 8 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 9 | `last_update` | `datetime` | SÍ | `NULL` | — | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); FK `fk_user_2` (`User_ID`) → `tb_users` (`ID`); KEY `fk_user_2_idx` (`User_ID`)
+**Relaciones:** `fk_user_2`: `tb_orders` (User_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_payments` mediante `fk_payment_order`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tb_orders_after_insert`, `trg_tb_orders_after_update`, `trg_tb_orders_after_delete`
+
+### `tb_payment_methods`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Catálogo de métodos de pago aceptados por la plataforma (nombre único, descripción y estado).
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de payment methods. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `name` | `varchar (60)` | NO | `No especificado` | — | Ninguna | Nombre único del método de pago. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `name ∈ Cadena` (varchar(60)). |
+| 3 | `description` | `varchar (255)` | SÍ | `NULL` | — | Ninguna | Descripción libre del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `description ∈ Cadena` (varchar(255)). |
+| 4 | `status` | `bit (1)` | NO | `b'1'` | — | Ninguna | Indicador de estado operativo: 1 = activo, 0 = inactivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ {0, 1}`. |
+| 5 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 6 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_method_name` (`name`)
+**Relaciones:** Tabla hija `tb_payments` mediante `fk_payment_method`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tb_payment_methods_after_insert`, `trg_tb_payment_methods_after_update`, `trg_tb_payment_methods_after_delete`
+
+### `tb_payment_transaction`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Bitácora de transacciones con el proveedor de pagos (autorización, captura, cargo, anulación, reembolso, contracargo) ligada a un pago y, si aplica, a un reembolso.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de payment transaction. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `payment_ID` | `int unsigned` | NO | `No especificado` | — | FK | Pago al que pertenece el registro. Referencia a `tb_refunds.payment_ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_refunds.payment_ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `payment_ID ∈ ℤ⁺`. |
+| 3 | `refund_ID` | `int unsigned` | SÍ | `NULL` | — | FK | Reembolso relacionado (obligatorio cuando la transacción es de tipo Refund). Referencia a `tb_refunds.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_refunds.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `refund_ID ∈ ℤ⁺`. |
+| 4 | `transaction_type` | `enum ('Authorization','Capture','Charge','Void','Refund','Chargeback','Adjustment')` | NO | `No especificado` | — | Ninguna | Tipo de transacción de pago; el CHECK exige refund_ID cuando es Refund. Valores: Authorization, Capture, Charge, Void, Refund, Chargeback, Adjustment. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `transaction_type ∈ {Authorization, Capture, Charge, Void, Refund, Chargeback, Adjustment}`. |
+| 5 | `transaction_status` | `enum ('Pending','Succeeded','Failed')` | NO | `'Pending'` | — | Ninguna | Resultado de la transacción. Valores: Pending, Succeeded, Failed. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `transaction_status ∈ {Pending, Succeeded, Failed}`. |
+| 6 | `amount` | `decimal (10,2)` | NO | `No especificado` | — | Ninguna | Monto de la operación; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `amount ∈ ℚ` (decimal(10,2)). |
+| 7 | `currency` | `char (3)` | NO | `'MXN'` | — | Ninguna | Código de moneda de tres letras (por defecto MXN). | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `currency ∈ Cadena` (char(3)). |
+| 8 | `provider` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Proveedor externo que procesó la operación. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider ∈ Cadena` (varchar(60)). |
+| 9 | `provider_transaction_id` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Identificador de la transacción en el proveedor; único junto con el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider_transaction_id ∈ Cadena` (varchar(150)). |
+| 10 | `idempotency_key` | `varchar (100)` | SÍ | `NULL` | — | Ninguna | Llave de idempotencia para evitar transacciones duplicadas; única junto con el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `idempotency_key ∈ Cadena` (varchar(100)). |
+| 11 | `response_code` | `varchar (100)` | SÍ | `NULL` | — | Ninguna | Código de respuesta devuelto por el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `response_code ∈ Cadena` (varchar(100)). |
+| 12 | `response_message` | `varchar (500)` | SÍ | `NULL` | — | Ninguna | Mensaje de respuesta devuelto por el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `response_message ∈ Cadena` (varchar(500)). |
+| 13 | `request_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora en que se envió la solicitud al proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `request_date ∈ FechaHora`. |
+| 14 | `response_date` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora en que se recibió la respuesta del proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `response_date ∈ FechaHora`. |
+| 15 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 16 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_transaction_provider_ref` (`provider`, `provider_transaction_id`); UNIQUE `uk_payment_transaction_idempotency` (`provider`, `idempotency_key`); FK `fk_payment_transaction_payment` (`payment_ID`) → `tb_payments` (`ID`); FK `fk_payment_transaction_refund_payment` (`refund_ID`, `payment_ID`) → `tb_refunds` (`ID`, `payment_ID`); CHECK `chk_payment_transaction_amount`: (`amount` > 0); CHECK `chk_payment_transaction_refund`: ((`transaction_type` <> _utf8mb4'Refund') or (`refund_ID` is not null)); KEY `idx_payment_transaction_payment` (`payment_ID`); KEY `idx_payment_transaction_refund` (`refund_ID`); KEY `fk_payment_transaction_refund_payment` (`refund_ID`, `payment_ID`)
+**Relaciones:** `fk_payment_transaction_payment`: `tb_payment_transaction` (payment_ID) → `tb_payments` (ID); cardinalidad 1:N padre:hija.; `fk_payment_transaction_refund_payment`: `tb_payment_transaction` (refund_ID, payment_ID) → `tb_refunds` (ID, payment_ID); cardinalidad 1:N padre:hija.
+**Triggers asociados:** `trg_tb_payment_transaction_after_insert`, `trg_tb_payment_transaction_after_update`, `trg_tb_payment_transaction_after_delete`
+
+### `tb_payments`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Pagos aplicados a una orden: monto, moneda, método, estado y referencia del proveedor de pagos.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de payments. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden a la que pertenece el registro. Referencia a `tb_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_ID ∈ ℤ⁺`. |
+| 3 | `payment_method_ID` | `int unsigned` | NO | `No especificado` | — | FK | Método de pago empleado. Referencia a `tb_payment_methods.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_payment_methods.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `payment_method_ID ∈ ℤ⁺`. |
+| 4 | `amount` | `decimal (10,2)` | NO | `No especificado` | — | Ninguna | Monto de la operación; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `amount ∈ ℚ` (decimal(10,2)). |
+| 5 | `currency` | `char (3)` | NO | `'MXN'` | — | Ninguna | Código de moneda de tres letras (por defecto MXN). | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `currency ∈ Cadena` (char(3)). |
+| 6 | `payment_status` | `enum ('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded')` | NO | `'Pending'` | — | Ninguna | Estado del pago. Valores: Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `payment_status ∈ {Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded}`. |
+| 7 | `provider` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Proveedor externo que procesó la operación. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider ∈ Cadena` (varchar(60)). |
+| 8 | `provider_reference` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Referencia del pago asignada por el proveedor; única junto con el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider_reference ∈ Cadena` (varchar(150)). |
+| 9 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 10 | `paid_date` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora en que el pago quedó liquidado. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `paid_date ∈ FechaHora`. |
+| 11 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_provider_reference` (`provider`, `provider_reference`); FK `fk_payment_method` (`payment_method_ID`) → `tb_payment_methods` (`ID`); FK `fk_payment_order` (`order_ID`) → `tb_orders` (`ID`); CHECK `chk_payment_amount`: (`amount` > 0); KEY `idx_payment_order` (`order_ID`); KEY `fk_payment_method` (`payment_method_ID`)
+**Relaciones:** `fk_payment_method`: `tb_payments` (payment_method_ID) → `tb_payment_methods` (ID); cardinalidad 1:N padre:hija.; `fk_payment_order`: `tb_payments` (order_ID) → `tb_orders` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_payment_transaction` mediante `fk_payment_transaction_payment`; cardinalidad padre:hija 1:N.; Tabla hija `tb_refunds` mediante `fk_refunds_payment`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tb_payments_after_insert`, `trg_tb_payments_after_update`, `trg_tb_payments_after_delete`
+
 ### `tb_people`
 
 - **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 3.
@@ -118,6 +237,61 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 **Relaciones:** Tabla hija `tbd_products_categories` mediante `fk_product`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_products_users_providers` mediante `fk_products2`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_users_wishlist_products` mediante `fk_products3`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_products_after_insert`, `trg_tb_products_after_insert`, `trg_products_after_update`, `trg_tb_products_after_update`, `trg_products_before_delete`, `trg_tb_products_after_delete`
 
+### `tb_refunds`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Reembolsos asociados a un pago; su origen puede ser una cancelación, una devolución o un ajuste/cortesía.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de refunds. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `payment_ID` | `int unsigned` | NO | `No especificado` | — | FK | Pago al que pertenece el registro. Referencia a `tb_payments.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_payments.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `payment_ID ∈ ℤ⁺`. |
+| 3 | `cancellation_ID` | `int unsigned` | SÍ | `NULL` | — | FK | Cancelación que origina el registro. Referencia a `tb_order_cancellations.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_order_cancellations.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `cancellation_ID ∈ ℤ⁺`. |
+| 4 | `return_ID` | `int unsigned` | SÍ | `NULL` | — | FK | Devolución a la que pertenece o que origina el registro. Referencia a `tb_returns.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_returns.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `return_ID ∈ ℤ⁺`. |
+| 5 | `reason` | `enum ('Cancellation','Return','Adjustment','Goodwill')` | NO | `No especificado` | — | Ninguna | Origen del reembolso: cancelación, devolución, ajuste o cortesía; el CHECK valida qué referencia debe venir informada. Valores: Cancellation, Return, Adjustment, Goodwill. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `reason ∈ {Cancellation, Return, Adjustment, Goodwill}`. |
+| 6 | `amount` | `decimal (10,2)` | NO | `No especificado` | — | Ninguna | Monto de la operación; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `amount ∈ ℚ` (decimal(10,2)). |
+| 7 | `currency` | `char (3)` | NO | `'MXN'` | — | Ninguna | Código de moneda de tres letras (por defecto MXN). | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `currency ∈ Cadena` (char(3)). |
+| 8 | `refund_status` | `enum ('Pending','Submitted','Succeeded','Failed','Canceled')` | NO | `'Pending'` | — | Ninguna | Estado del reembolso. Valores: Pending, Submitted, Succeeded, Failed, Canceled. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `refund_status ∈ {Pending, Submitted, Succeeded, Failed, Canceled}`. |
+| 9 | `provider` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Proveedor externo que procesó la operación. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider ∈ Cadena` (varchar(60)). |
+| 10 | `provider_reference` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Referencia del pago asignada por el proveedor; única junto con el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider_reference ∈ Cadena` (varchar(150)). |
+| 11 | `requested_by_user_ID` | `int` | SÍ | `NULL` | — | FK | Usuario que solicitó la operación. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `requested_by_user_ID ∈ ℤ`. |
+| 12 | `reason_detail` | `varchar (1000)` | SÍ | `NULL` | — | Ninguna | Detalle libre del motivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `reason_detail ∈ Cadena` (varchar(1000)). |
+| 13 | `requested_at` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de la solicitud. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `requested_at ∈ FechaHora`. |
+| 14 | `processed_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora en que se procesó el reembolso. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `processed_at ∈ FechaHora`. |
+| 15 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 16 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_refunds_id_payment` (`ID`, `payment_ID`); UNIQUE `uk_refunds_provider_reference` (`provider`, `provider_reference`); FK `fk_refunds_cancellation` (`cancellation_ID`) → `tb_order_cancellations` (`ID`); FK `fk_refunds_payment` (`payment_ID`) → `tb_payments` (`ID`); FK `fk_refunds_requester` (`requested_by_user_ID`) → `tb_users` (`ID`); FK `fk_refunds_return` (`return_ID`) → `tb_returns` (`ID`); CHECK `chk_refunds_amount`: (`amount` > 0); CHECK `chk_refunds_source`: (((`reason` = _utf8mb4'Cancellation') and (`cancellation_ID` is not null) and (`return_ID` is null)) or ((`reason` = _utf8mb4'Return') and (`return_ID` is not null) and (`cancellation_ID` is null)) or ((`reason` in (_utf8mb4'Adjustment',_utf8mb4'Goodwill')) and (`cancellation_ID` is null) and (`return_ID` is null))); KEY `idx_refunds_payment` (`payment_ID`); KEY `idx_refunds_cancellation` (`cancellation_ID`); KEY `idx_refunds_return` (`return_ID`); KEY `idx_refunds_requester` (`requested_by_user_ID`)
+**Relaciones:** `fk_refunds_cancellation`: `tb_refunds` (cancellation_ID) → `tb_order_cancellations` (ID); cardinalidad 1:N padre:hija.; `fk_refunds_payment`: `tb_refunds` (payment_ID) → `tb_payments` (ID); cardinalidad 1:N padre:hija.; `fk_refunds_requester`: `tb_refunds` (requested_by_user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; `fk_refunds_return`: `tb_refunds` (return_ID) → `tb_returns` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_payment_transaction` mediante `fk_payment_transaction_refund_payment`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tb_refunds_after_insert`, `trg_tb_refunds_after_update`, `trg_tb_refunds_after_delete`
+
+### `tb_returns`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Solicitudes de devolución sobre una orden de vendedor/comprador, con motivo, estado y guía de retorno.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de returns. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `buyer_order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden de vendedor/comprador (tbd_buyer_orders) a la que pertenece. Referencia a `tbd_buyer_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_buyer_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `buyer_order_ID ∈ ℤ⁺`. |
+| 3 | `requested_by_user_ID` | `int` | SÍ | `NULL` | — | FK | Usuario que solicitó la operación. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `requested_by_user_ID ∈ ℤ`. |
+| 4 | `reason_code` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Código corto del motivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `reason_code ∈ Cadena` (varchar(60)). |
+| 5 | `reason_detail` | `varchar (1000)` | SÍ | `NULL` | — | Ninguna | Detalle libre del motivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `reason_detail ∈ Cadena` (varchar(1000)). |
+| 6 | `return_status` | `enum ('Requested','Authorized','Rejected','LabelCreated','InTransit','Received','Inspected','Approved','PartiallyApproved','Refunded','Closed')` | NO | `'Requested'` | — | Ninguna | Estado del proceso de devolución. Valores: Requested, Authorized, Rejected, LabelCreated, InTransit, Received, Inspected, Approved, PartiallyApproved, Refunded, Closed. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `return_status ∈ {Requested, Authorized, Rejected, LabelCreated, InTransit, Received, Inspected, Approved, PartiallyApproved, Refunded, Closed}`. |
+| 7 | `return_carrier` | `varchar (100)` | SÍ | `NULL` | — | Ninguna | Paquetería usada para el retorno. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `return_carrier ∈ Cadena` (varchar(100)). |
+| 8 | `return_tracking_number` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Número de rastreo del retorno. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `return_tracking_number ∈ Cadena` (varchar(150)). |
+| 9 | `requested_at` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de la solicitud. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `requested_at ∈ FechaHora`. |
+| 10 | `authorized_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de autorización de la devolución. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `authorized_at ∈ FechaHora`. |
+| 11 | `received_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de recepción de la devolución. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `received_at ∈ FechaHora`. |
+| 12 | `closed_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de cierre de la devolución. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `closed_at ∈ FechaHora`. |
+| 13 | `internal_notes` | `varchar (1000)` | SÍ | `NULL` | — | Ninguna | Notas internas de soporte. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `internal_notes ∈ Cadena` (varchar(1000)). |
+| 14 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 15 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); FK `fk_returns_buyer_order` (`buyer_order_ID`) → `tbd_buyer_orders` (`ID`); FK `fk_returns_requester` (`requested_by_user_ID`) → `tb_users` (`ID`); KEY `idx_returns_buyer_order` (`buyer_order_ID`); KEY `idx_returns_requester` (`requested_by_user_ID`); KEY `idx_returns_tracking` (`return_carrier`, `return_tracking_number`)
+**Relaciones:** `fk_returns_buyer_order`: `tb_returns` (buyer_order_ID) → `tbd_buyer_orders` (ID); cardinalidad 1:N padre:hija.; `fk_returns_requester`: `tb_returns` (requested_by_user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_refunds` mediante `fk_refunds_return`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_return_items` mediante `fk_return_items_return`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tb_returns_after_insert`, `trg_tb_returns_after_update`, `trg_tb_returns_after_delete`
+
 ### `tb_seller_orders`
 
 - **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
@@ -137,6 +311,40 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 **Restricciones/índices:** PK (`ID`); INDEX `seller_ID` (`seller_ID`); FK `tb_seller_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL; CHECK CONSTRAINT `tb_seller_orders_chk_1` CHECK ((`subtotal` >= 0)); CHECK CONSTRAINT `tb_seller_orders_chk_2` CHECK ((`shipping_cost` >= 0))
 **Relaciones:** `tb_seller_orders_ibfk_1`: `tb_seller_orders` (seller_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_1`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tb_seller_orders_after_insert`, `trg_tb_seller_orders_after_update`, `trg_tb_seller_orders_after_delete`
+
+### `tb_shipments`
+
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Envíos de una orden de vendedor/comprador: destinatario, dirección, paquetería, rastreo, costo y fechas.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de shipments. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `buyer_order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden de vendedor/comprador (tbd_buyer_orders) a la que pertenece. Referencia a `tbd_buyer_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_buyer_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `buyer_order_ID ∈ ℤ⁺`. |
+| 3 | `address_ID` | `bigint unsigned` | SÍ | `NULL` | — | FK | Dirección de usuario usada como destino. Referencia a `tb_user_addresses.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tb_user_addresses.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `address_ID ∈ ℤ⁺`. |
+| 4 | `recipient_name` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Nombre del destinatario del envío. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `recipient_name ∈ Cadena` (varchar(150)). |
+| 5 | `recipient_phone` | `varchar (25)` | SÍ | `NULL` | — | Ninguna | Teléfono del destinatario. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `recipient_phone ∈ Cadena` (varchar(25)). |
+| 6 | `address_line_1` | `varchar (255)` | SÍ | `NULL` | — | Ninguna | Primera línea de la dirección de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `address_line_1 ∈ Cadena` (varchar(255)). |
+| 7 | `address_line_2` | `varchar (255)` | SÍ | `NULL` | — | Ninguna | Segunda línea de la dirección de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `address_line_2 ∈ Cadena` (varchar(255)). |
+| 8 | `city` | `varchar (120)` | SÍ | `NULL` | — | Ninguna | Ciudad de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `city ∈ Cadena` (varchar(120)). |
+| 9 | `state_region` | `varchar (120)` | SÍ | `NULL` | — | Ninguna | Estado o región de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `state_region ∈ Cadena` (varchar(120)). |
+| 10 | `postal_code` | `varchar (20)` | SÍ | `NULL` | — | Ninguna | Código postal de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `postal_code ∈ Cadena` (varchar(20)). |
+| 11 | `country_code` | `char (2)` | SÍ | `NULL` | — | Ninguna | Código de país de dos letras. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `country_code ∈ Cadena` (char(2)). |
+| 12 | `carrier` | `varchar (100)` | SÍ | `NULL` | — | Ninguna | Paquetería encargada del envío. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `carrier ∈ Cadena` (varchar(100)). |
+| 13 | `service_level` | `varchar (100)` | SÍ | `NULL` | — | Ninguna | Nivel de servicio contratado con la paquetería. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `service_level ∈ Cadena` (varchar(100)). |
+| 14 | `tracking_number` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Número de rastreo del envío. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `tracking_number ∈ Cadena` (varchar(150)). |
+| 15 | `tracking_url` | `varchar (500)` | SÍ | `NULL` | — | Ninguna | URL de seguimiento del envío. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `tracking_url ∈ Cadena` (varchar(500)). |
+| 16 | `shipment_status` | `enum ('Pending','LabelCreated','ReadyToShip','InTransit','OutForDelivery','Delivered','DeliveryFailed','Lost','Returned')` | NO | `'Pending'` | — | Ninguna | Estado logístico del envío. Valores: Pending, LabelCreated, ReadyToShip, InTransit, OutForDelivery, Delivered, DeliveryFailed, Lost, Returned. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `shipment_status ∈ {Pending, LabelCreated, ReadyToShip, InTransit, OutForDelivery, Delivered, DeliveryFailed, Lost, Returned}`. |
+| 17 | `shipping_cost` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Costo de envío; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `shipping_cost ∈ ℚ` (decimal(12,2)). |
+| 18 | `shipped_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de despacho. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `shipped_at ∈ FechaHora`. |
+| 19 | `estimated_delivery_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha estimada de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `estimated_delivery_at ∈ FechaHora`. |
+| 20 | `delivered_at` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora de entrega. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `delivered_at ∈ FechaHora`. |
+| 21 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 22 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); FK `fk_shipments_address` (`address_ID`) → `tb_user_addresses` (`ID`); FK `fk_shipments_buyer_order` (`buyer_order_ID`) → `tbd_buyer_orders` (`ID`); CHECK `chk_shipments_shipping_cost`: (`shipping_cost` >= 0); KEY `idx_shipments_buyer_order` (`buyer_order_ID`); KEY `idx_shipments_address` (`address_ID`); KEY `idx_shipments_tracking` (`carrier`, `tracking_number`)
+**Relaciones:** `fk_shipments_address`: `tb_shipments` (address_ID) → `tb_user_addresses` (ID); cardinalidad 1:N padre:hija.; `fk_shipments_buyer_order`: `tb_shipments` (buyer_order_ID) → `tbd_buyer_orders` (ID); cardinalidad 1:N padre:hija.
+**Triggers asociados:** `trg_tb_shipments_after_insert`, `trg_tb_shipments_after_update`, `trg_tb_shipments_after_delete`
 
 ### `tb_user_addresses`
 
@@ -239,6 +447,43 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 **Relaciones:** `fk_component_address`: `tbd_address_components` (address_ID) → `tb_user_addresses` (ID); cardinalidad 1:N padre:hija.; `fk_component_parent`: `tbd_address_components` (address_ID, address_sup_ID) → `tbd_address_components` (address_ID, ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_address_components` mediante `fk_component_parent`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tbd_address_components_after_insert`, `trg_tbd_address_components_after_update`, `trg_tbd_address_components_after_delete`
 
+### `tbd_buyer_orders`
+
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Orden por vendedor dentro de una compra: subtotal, costo de envío y estado de cumplimiento. Es la tabla de la que cuelgan envíos, devoluciones y cancelaciones.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de buyer orders. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `seller_ID` | `int` | NO | `No especificado` | — | FK | Usuario vendedor. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `seller_ID ∈ ℤ`. |
+| 3 | `subtotal` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Subtotal de la orden del vendedor; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `subtotal ∈ ℚ` (decimal(12,2)). |
+| 4 | `shipping_cost` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Costo de envío; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `shipping_cost ∈ ℚ` (decimal(12,2)). |
+| 5 | `fulfillment_status` | `enum ('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NO | `'Pending'` | — | Ninguna | Estado de cumplimiento de la orden del vendedor. Valores: Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `fulfillment_status ∈ {Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned}`. |
+| 6 | `status` | `bit (1)` | NO | `b'1'` | — | Ninguna | Indicador de estado operativo: 1 = activo, 0 = inactivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ {0, 1}`. |
+| 7 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 8 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); FK `tbd_buyer_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tbd_buyer_orders_chk_1`: (`subtotal` >= 0); CHECK `tbd_buyer_orders_chk_2`: (`shipping_cost` >= 0); KEY `seller_ID` (`seller_ID`)
+**Relaciones:** `tbd_buyer_orders_ibfk_1`: `tbd_buyer_orders` (seller_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_returns` mediante `fk_returns_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_shipments` mediante `fk_shipments_buyer_order`; cardinalidad padre:hija 1:N.
+**Triggers asociados:** `trg_tbd_buyer_orders_after_insert`, `trg_tbd_buyer_orders_after_update`, `trg_tbd_buyer_orders_after_delete`
+
+### `tbd_cancellation_items`
+
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Detalle de los ítems de orden (y cantidad) incluidos en una cancelación parcial.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de cancellation items. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `cancellation_ID` | `int unsigned` | NO | `No especificado` | — | FK | Cancelación que origina el registro. Referencia a `tb_order_cancellations.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_order_cancellations.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `cancellation_ID ∈ ℤ⁺`. |
+| 3 | `order_item_ID` | `int unsigned` | NO | `No especificado` | — | FK | Ítem de orden (tbd_order_items) afectado. Referencia a `tbd_order_items.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_order_items.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_item_ID ∈ ℤ⁺`. |
+| 4 | `quantity` | `int unsigned` | NO | `No especificado` | — | Ninguna | Cantidad de unidades; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa discreta. Composición formal: =. Dominio formal: `quantity ∈ ℤ⁺`. |
+| 5 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_cancellation_order_item` (`cancellation_ID`, `order_item_ID`); FK `fk_cancellation_items_cancellation` (`cancellation_ID`) → `tb_order_cancellations` (`ID`); FK `fk_cancellation_items_order_item` (`order_item_ID`) → `tbd_order_items` (`ID`); CHECK `chk_cancellation_items_quantity`: (`quantity` > 0); KEY `idx_cancellation_items_order_item` (`order_item_ID`)
+**Relaciones:** `fk_cancellation_items_cancellation`: `tbd_cancellation_items` (cancellation_ID) → `tb_order_cancellations` (ID); cardinalidad 1:N padre:hija.; `fk_cancellation_items_order_item`: `tbd_cancellation_items` (order_item_ID) → `tbd_order_items` (ID); cardinalidad 1:N padre:hija.
+**Triggers asociados:** `trg_tbd_cancellation_items_after_insert`, `trg_tbd_cancellation_items_after_update`, `trg_tbd_cancellation_items_after_delete`
+
 ### `tbd_cart_items`
 
 - **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
@@ -313,6 +558,28 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 **Relaciones:** `fk_products2`: `tbd_products_users_providers` (product_ID) → `tb_products` (id); cardinalidad 1:N padre:hija.; `fk_user1`: `tbd_products_users_providers` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_2`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_3`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_2`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_3`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_products_users_providers_after_insert`, `trg_products_users_providers_after_update`, `trg_products_users_providers_after_delete`
 
+### `tbd_return_items`
+
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Propósito de negocio:** Detalle de los ítems de orden devueltos: cantidad, condición, destino del artículo y monto aprobado a reembolsar.
+
+| # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
+|---:|---|---|:---:|---|---|---|---|---|
+| 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de return items. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
+| 2 | `return_ID` | `int unsigned` | NO | `No especificado` | — | FK | Devolución a la que pertenece o que origina el registro. Referencia a `tb_returns.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_returns.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `return_ID ∈ ℤ⁺`. |
+| 3 | `order_item_ID` | `int unsigned` | NO | `No especificado` | — | FK | Ítem de orden (tbd_order_items) afectado. Referencia a `tbd_order_items.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_order_items.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_item_ID ∈ ℤ⁺`. |
+| 4 | `quantity` | `int unsigned` | NO | `No especificado` | — | Ninguna | Cantidad de unidades; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa discreta. Composición formal: =. Dominio formal: `quantity ∈ ℤ⁺`. |
+| 5 | `item_condition` | `enum ('Unopened','Unused','Used','Damaged','Defective','Other')` | SÍ | `NULL` | — | Ninguna | Condición física del artículo devuelto. Valores: Unopened, Unused, Used, Damaged, Defective, Other. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `item_condition ∈ {Unopened, Unused, Used, Damaged, Defective, Other}`. |
+| 6 | `disposition` | `enum ('Pending','Restock','Repair','Dispose','SupplierReturn')` | NO | `'Pending'` | — | Ninguna | Destino del artículo devuelto. Valores: Pending, Restock, Repair, Dispose, SupplierReturn. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `disposition ∈ {Pending, Restock, Repair, Dispose, SupplierReturn}`. |
+| 7 | `approved_refund_amount` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Monto aprobado a reembolsar; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `approved_refund_amount ∈ ℚ` (decimal(12,2)). |
+| 8 | `item_status` | `enum ('Requested','Approved','Rejected','Received','Refunded')` | NO | `'Requested'` | — | Ninguna | Estado del ítem dentro de la devolución. Valores: Requested, Approved, Rejected, Received, Refunded. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `item_status ∈ {Requested, Approved, Rejected, Received, Refunded}`. |
+| 9 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 10 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_return_order_item` (`return_ID`, `order_item_ID`); FK `fk_return_items_order_item` (`order_item_ID`) → `tbd_order_items` (`ID`); FK `fk_return_items_return` (`return_ID`) → `tb_returns` (`ID`); CHECK `chk_return_items_quantity`: (`quantity` > 0); CHECK `chk_return_items_refund_amount`: (`approved_refund_amount` >= 0); KEY `idx_return_items_order_item` (`order_item_ID`)
+**Relaciones:** `fk_return_items_order_item`: `tbd_return_items` (order_item_ID) → `tbd_order_items` (ID); cardinalidad 1:N padre:hija.; `fk_return_items_return`: `tbd_return_items` (return_ID) → `tb_returns` (ID); cardinalidad 1:N padre:hija.
+**Triggers asociados:** `trg_tbd_return_items_after_insert`, `trg_tbd_return_items_after_update`, `trg_tbd_return_items_after_delete`
+
 ### `tbd_user_payment_methods`
 
 - **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
@@ -359,25 +626,39 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 - `tb_users` ↔ `tb_products` mediante `tbd_products_users_providers` (PK compuesta `user_ID`, `product_ID`).
 - `tb_users` ↔ `tb_products` mediante `tbd_users_wishlist_products` (PK compuesta `user_ID`, `product_ID`).
 - `tb_users` ↔ `tbc_payment_methods_types` mediante `tbd_user_payment_methods`; el ID propio permite múltiples filas y el DDL no declara unicidad por par.
+- `tb_orders` ↔ `tb_payment_methods` mediante `tb_payments` (una orden puede tener varios pagos y un método de pago aplica a varios pagos).
+- `tbd_order_items` ↔ `tb_order_cancellations` mediante `tbd_cancellation_items` (cancelaciones parciales por ítem; UNIQUE `cancellation_ID`, `order_item_ID`).
+- `tbd_order_items` ↔ `tb_returns` mediante `tbd_return_items` (devoluciones por ítem; UNIQUE `return_ID`, `order_item_ID`).
 
 ## Vistas
 
 | Vista | Propósito | Tablas base | Columnas expuestas y origen |
 |---|---|---|---|
-| `vw_total_products_by_category` | Cuenta productos por categoría, jerarquía y estado. | `tbc_categories`, `tbd_products_categories` | `category_ID` ← tbc_categories.ID / jerarquía recursiva, `category_path` ← concatenación jerárquica de tbc_categories.name, `category_level` ← profundidad calculada en la jerarquía de categorías, `total_products` ← conteo agregado de relaciones producto-categoría, `total_active_products` ← conteo agregado de productos con status activo, `total_inactive_products` ← conteo agregado de productos con status inactivo, `total_uncategorized_products` ← conteo agregado de productos sin categoría |
 | `vw_total_products_by_category1` | Cuenta productos por categoría, jerarquía y estado. | `tb_products`, `tbc_categories`, `tbd_products_categories` | `category_ID` ← tbc_categories.ID / jerarquía recursiva, `category_path` ← concatenación jerárquica de tbc_categories.name, `category_level` ← profundidad calculada en la jerarquía de categorías, `total_products` ← conteo agregado de relaciones producto-categoría, `total_active_products` ← conteo agregado de productos con status activo, `total_inactive_products` ← conteo agregado de productos con status inactivo, `total_uncategorized_products` ← conteo agregado de productos sin categoría |
+| `vw_total_products_by_category` | Cuenta productos por categoría, jerarquía y estado. | `tbc_categories`, `tbd_products_categories` | `category_ID` ← tbc_categories.ID / jerarquía recursiva, `category_path` ← concatenación jerárquica de tbc_categories.name, `category_level` ← profundidad calculada en la jerarquía de categorías, `total_products` ← conteo agregado de relaciones producto-categoría, `total_active_products` ← conteo agregado de productos con status activo, `total_inactive_products` ← conteo agregado de productos con status inactivo, `total_uncategorized_products` ← conteo agregado de productos sin categoría |
 | `vw_trazabilidad_address_components` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_buyer_orders` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_cancellation_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_cart_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_carts` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_categorias` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_logs` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_order_cancellations` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_order_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_orders` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_payment_methods` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_payment_methods_types` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_payment_transaction` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_payments` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_people` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_productos` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_products_categories` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_products_users_providers` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_refunds` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_return_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_returns` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_seller_orders` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
+| `vw_trazabilidad_shipments` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_user_addresses` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_user_payment_methods` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_users_wishlist_products` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
@@ -390,6 +671,21 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | `trg_tb_carts_after_insert` | `tb_carts` | INSERT | AFTER | tb_carts; Create; Registro creado en tb_carts. ID=; campos: `id` |
 | `trg_tb_carts_after_update` | `tb_carts` | UPDATE | AFTER | tb_carts; Update; Registro actualizado en tb_carts. ID=; campos: `id` |
 | `trg_tb_carts_after_delete` | `tb_carts` | DELETE | AFTER | tb_carts; Delete; Registro eliminado en tb_carts. ID=; campos: `id` |
+| `trg_tb_order_cancellations_after_insert` | `tb_order_cancellations` | INSERT | AFTER | tb_order_cancellations; Create; Registro creado en tb_order_cancellations. ID= ID=; campos: `id` |
+| `trg_tb_order_cancellations_after_update` | `tb_order_cancellations` | UPDATE | AFTER | tb_order_cancellations; Update; Registro actualizado en tb_order_cancellations. ID= ID=; campos: `id` |
+| `trg_tb_order_cancellations_after_delete` | `tb_order_cancellations` | DELETE | AFTER | tb_order_cancellations; Delete; Registro eliminado en tb_order_cancellations. ID= ID=; campos: `id` |
+| `trg_tb_orders_after_insert` | `tb_orders` | INSERT | AFTER | tb_orders; Create; Registro creado en tb_orders. ID= ID=; campos: `id` |
+| `trg_tb_orders_after_update` | `tb_orders` | UPDATE | AFTER | tb_orders; Update; Registro actualizado en tb_orders. ID= ID=; campos: `id` |
+| `trg_tb_orders_after_delete` | `tb_orders` | DELETE | AFTER | tb_orders; Delete; Registro eliminado en tb_orders. ID= ID=; campos: `id` |
+| `trg_tb_payment_methods_after_insert` | `tb_payment_methods` | INSERT | AFTER | tb_payment_methods; Create; Registro creado en tb_payment_methods. ID= ID=; campos: `id` |
+| `trg_tb_payment_methods_after_update` | `tb_payment_methods` | UPDATE | AFTER | tb_payment_methods; Update; Registro actualizado en tb_payment_methods. ID= ID=; campos: `id` |
+| `trg_tb_payment_methods_after_delete` | `tb_payment_methods` | DELETE | AFTER | tb_payment_methods; Delete; Registro eliminado en tb_payment_methods. ID= ID=; campos: `id` |
+| `trg_tb_payment_transaction_after_insert` | `tb_payment_transaction` | INSERT | AFTER | tb_payment_transaction; Create; Registro creado en tb_payment_transaction. ID= ID=; campos: `id` |
+| `trg_tb_payment_transaction_after_update` | `tb_payment_transaction` | UPDATE | AFTER | tb_payment_transaction; Update; Registro actualizado en tb_payment_transaction. ID= ID=; campos: `id` |
+| `trg_tb_payment_transaction_after_delete` | `tb_payment_transaction` | DELETE | AFTER | tb_payment_transaction; Delete; Registro eliminado en tb_payment_transaction. ID= ID=; campos: `id` |
+| `trg_tb_payments_after_insert` | `tb_payments` | INSERT | AFTER | tb_payments; Create; Registro creado en tb_payments. ID= ID=; campos: `id` |
+| `trg_tb_payments_after_update` | `tb_payments` | UPDATE | AFTER | tb_payments; Update; Registro actualizado en tb_payments. ID= ID=; campos: `id` |
+| `trg_tb_payments_after_delete` | `tb_payments` | DELETE | AFTER | tb_payments; Delete; Registro eliminado en tb_payments. ID= ID=; campos: `id` |
 | `trg_tb_people_after_insert` | `tb_people` | INSERT | AFTER | tb_people; Inserción en tb_people - person_ID: ;  | Nombre: ; campos: `family_names`, `given_names`, `person_ID`, `user_ID` |
 | `trg_tb_people_after_update` | `tb_people` | UPDATE | AFTER | tb_people; Actualización en tb_people - person_ID: ;  | Nombre anterior: ; campos: `family_names`, `given_names`, `person_ID`, `status` |
 | `trg_tb_people_after_delete` | `tb_people` | DELETE | AFTER | tb_people; Eliminación en tb_people - person_ID: ;  | Nombre: ; campos: `family_names`, `given_names`, `person_ID`, `user_ID` |
@@ -399,9 +695,18 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | `trg_tb_products_after_update` | `tb_products` | UPDATE | AFTER | tb_products; Update; Registro actualizado en tb_products. ID=; campos: `id` |
 | `trg_products_before_delete` | `tb_products` | DELETE | BEFORE | tb_products; Delete; Producto eliminado. ID=; campos: `ID`, `SKU`, `name` |
 | `trg_tb_products_after_delete` | `tb_products` | DELETE | AFTER | tb_products; Delete; Registro eliminado en tb_products. ID=; campos: `id` |
+| `trg_tb_refunds_after_insert` | `tb_refunds` | INSERT | AFTER | tb_refunds; Create; Registro creado en tb_refunds. ID= ID=; campos: `id` |
+| `trg_tb_refunds_after_update` | `tb_refunds` | UPDATE | AFTER | tb_refunds; Update; Registro actualizado en tb_refunds. ID= ID=; campos: `id` |
+| `trg_tb_refunds_after_delete` | `tb_refunds` | DELETE | AFTER | tb_refunds; Delete; Registro eliminado en tb_refunds. ID= ID=; campos: `id` |
+| `trg_tb_returns_after_insert` | `tb_returns` | INSERT | AFTER | tb_returns; Create; Registro creado en tb_returns. ID= ID=; campos: `id` |
+| `trg_tb_returns_after_update` | `tb_returns` | UPDATE | AFTER | tb_returns; Update; Registro actualizado en tb_returns. ID= ID=; campos: `id` |
+| `trg_tb_returns_after_delete` | `tb_returns` | DELETE | AFTER | tb_returns; Delete; Registro eliminado en tb_returns. ID= ID=; campos: `id` |
 | `trg_tb_seller_orders_after_insert` | `tb_seller_orders` | INSERT | AFTER | tb_seller_orders; Create; Registro creado en tb_seller_orders. ID=; campos: `id` |
 | `trg_tb_seller_orders_after_update` | `tb_seller_orders` | UPDATE | AFTER | tb_seller_orders; Update; Registro actualizado en tb_seller_orders. ID=; campos: `id` |
 | `trg_tb_seller_orders_after_delete` | `tb_seller_orders` | DELETE | AFTER | tb_seller_orders; Delete; Registro eliminado en tb_seller_orders. ID=; campos: `id` |
+| `trg_tb_shipments_after_insert` | `tb_shipments` | INSERT | AFTER | tb_shipments; Create; Registro creado en tb_shipments. ID= ID=; campos: `id` |
+| `trg_tb_shipments_after_update` | `tb_shipments` | UPDATE | AFTER | tb_shipments; Update; Registro actualizado en tb_shipments. ID= ID=; campos: `id` |
+| `trg_tb_shipments_after_delete` | `tb_shipments` | DELETE | AFTER | tb_shipments; Delete; Registro eliminado en tb_shipments. ID= ID=; campos: `id` |
 | `trg_tb_user_addresses_after_insert` | `tb_user_addresses` | INSERT | AFTER | tb_user_addresses; Create; Registro creado en tb_user_addresses. ID=; campos: `id` |
 | `trg_tb_user_addresses_after_update` | `tb_user_addresses` | UPDATE | AFTER | tb_user_addresses; Update; Registro actualizado en tb_user_addresses. ID=; campos: `id` |
 | `trg_tb_user_addresses_after_delete` | `tb_user_addresses` | DELETE | AFTER | tb_user_addresses; Delete; Registro eliminado en tb_user_addresses. ID=; campos: `id` |
@@ -420,6 +725,12 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | `trg_tbd_address_components_after_insert` | `tbd_address_components` | INSERT | AFTER | tbd_address_components; Create; Registro creado en tbd_address_components. ID=; campos: `id` |
 | `trg_tbd_address_components_after_update` | `tbd_address_components` | UPDATE | AFTER | tbd_address_components; Update; Registro actualizado en tbd_address_components. ID=; campos: `id` |
 | `trg_tbd_address_components_after_delete` | `tbd_address_components` | DELETE | AFTER | tbd_address_components; Delete; Registro eliminado en tbd_address_components. ID=; campos: `id` |
+| `trg_tbd_buyer_orders_after_insert` | `tbd_buyer_orders` | INSERT | AFTER | tbd_buyer_orders; Create; Registro creado en tbd_buyer_orders. ID= ID=; campos: `id` |
+| `trg_tbd_buyer_orders_after_update` | `tbd_buyer_orders` | UPDATE | AFTER | tbd_buyer_orders; Update; Registro actualizado en tbd_buyer_orders. ID= ID=; campos: `id` |
+| `trg_tbd_buyer_orders_after_delete` | `tbd_buyer_orders` | DELETE | AFTER | tbd_buyer_orders; Delete; Registro eliminado en tbd_buyer_orders. ID= ID=; campos: `id` |
+| `trg_tbd_cancellation_items_after_insert` | `tbd_cancellation_items` | INSERT | AFTER | tbd_cancellation_items; Create; Registro creado en tbd_cancellation_items. ID= ID=; campos: `id` |
+| `trg_tbd_cancellation_items_after_update` | `tbd_cancellation_items` | UPDATE | AFTER | tbd_cancellation_items; Update; Registro actualizado en tbd_cancellation_items. ID= ID=; campos: `id` |
+| `trg_tbd_cancellation_items_after_delete` | `tbd_cancellation_items` | DELETE | AFTER | tbd_cancellation_items; Delete; Registro eliminado en tbd_cancellation_items. ID= ID=; campos: `id` |
 | `trg_tbd_cart_items_after_insert` | `tbd_cart_items` | INSERT | AFTER | tbd_cart_items; Create; Ítem agregado al carrito. cart_ID=; campos: `cart_ID`, `product_ID`, `provider_ID`, `quantity` |
 | `trg_tbd_cart_items_after_update` | `tbd_cart_items` | UPDATE | AFTER | tbd_cart_items; Update; Ítem de carrito actualizado. cart_ID=; campos: `cart_ID`, `product_ID`, `provider_ID`, `quantity` |
 | `trg_tbd_cart_items_after_delete` | `tbd_cart_items` | DELETE | AFTER | tbd_cart_items; Delete; Ítem de carrito eliminado. cart_ID=; campos: `cart_ID`, `product_ID`, `provider_ID` |
@@ -432,6 +743,9 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | `trg_products_users_providers_after_insert` | `tbd_products_users_providers` | INSERT | AFTER | tbd_products_users_providers; Insert; Relación producto-usuario registrada. User_ID=; campos: `product_ID`, `type_ownership`, `user_ID` |
 | `trg_products_users_providers_after_update` | `tbd_products_users_providers` | UPDATE | AFTER | tbd_products_users_providers; Update; Relación producto-usuario actualizada. User_ID=; campos: `product_ID`, `status`, `type_ownership`, `user_ID` |
 | `trg_products_users_providers_after_delete` | `tbd_products_users_providers` | DELETE | AFTER | tbd_products_users_providers; Delete; Relación producto-usuario eliminada. User_ID=; campos: `product_ID`, `type_ownership`, `user_ID` |
+| `trg_tbd_return_items_after_insert` | `tbd_return_items` | INSERT | AFTER | tbd_return_items; Create; Registro creado en tbd_return_items. ID= ID=; campos: `id` |
+| `trg_tbd_return_items_after_update` | `tbd_return_items` | UPDATE | AFTER | tbd_return_items; Update; Registro actualizado en tbd_return_items. ID= ID=; campos: `id` |
+| `trg_tbd_return_items_after_delete` | `tbd_return_items` | DELETE | AFTER | tbd_return_items; Delete; Registro eliminado en tbd_return_items. ID= ID=; campos: `id` |
 | `trg_tbd_user_payment_methods_after_insert` | `tbd_user_payment_methods` | INSERT | AFTER | tbd_user_payment_methods; Create; Registro creado en tbd_user_payment_methods; campos: según cuerpo |
 | `trg_tbd_user_payment_methods_after_update` | `tbd_user_payment_methods` | UPDATE | AFTER | tbd_user_payment_methods; Update; Registro actualizado en tbd_user_payment_methods; campos: según cuerpo |
 | `trg_tbd_user_payment_methods_after_delete` | `tbd_user_payment_methods` | DELETE | AFTER | tbd_user_payment_methods; Delete; Registro eliminado en tbd_user_payment_methods; campos: según cuerpo |
@@ -497,6 +811,35 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 **Ejemplo:** `CALL sp_soft_delete_user(/* p_user_id */);`
 
+### `sp_simulate_single_user`
+
+**Parámetros:** `OUT p_created_user_id INT UNSIGNED`
+
+**Lógica:** Genera un nick y un correo únicos a partir de un hash aleatorio, elige género, país, título de cortesía, nombre, apellido, fecha de nacimiento y teléfono simulados con las funciones fn_simulate_*, inserta la cuenta en tb_users y su perfil en tb_people, y devuelve el ID creado por el parámetro OUT.
+
+**Tablas consultadas/modificadas:** `tb_people`, `tb_users`
+
+**Ejemplo:** `CALL sp_simulate_single_user(/* p_created_user_id */);`
+
+### `sp_simulate_users_bulk`
+
+**Parámetros:** `IN p_quantity INT UNSIGNED`; `IN p_batch_size INT UNSIGNED`
+
+**Lógica:** Recibe una cantidad y un tamaño de bloque (500 por defecto si es NULL o 0), abre una transacción y llama en ciclo a sp_simulate_single_user; confirma parcialmente cada bloque para liberar memoria e índices y confirma al final.
+
+**Tablas consultadas/modificadas:** Ninguna directamente (invoca `sp_simulate_single_user`)
+
+**Ejemplo:** `CALL sp_simulate_users_bulk(/* p_quantity */, /* p_batch_size */);`
+
+## Funciones almacenadas
+
+| Función | Parámetros | Retorna | Descripción | Tablas consultadas |
+|---|---|---|---|---|
+| `fn_simulate_birthdate` | — | `date` | Devuelve una fecha de nacimiento simulada. | — |
+| `fn_simulate_country_code` | — | `char(2)` | Devuelve un código de país de dos letras tomado de tbc_countries. | `tbc_countries` |
+| `fn_simulate_courtesy_title_id` | `p_gender_id TINYINT UNSIGNED` | `tinyint` | Devuelve el ID de un título de cortesía acorde al género recibido, consultando tbc_gender_options y tbc_courtesy_titles. | `tbc_courtesy_titles`, `tbc_gender_options` |
+| `fn_simulate_gender_id` | — | `tinyint` | Devuelve el ID de un género simulado desde tbc_gender_options. | `tbc_gender_options` |
+
 ## Dominios y convenciones
 
 **ENUM y campos de estado:**
@@ -519,6 +862,23 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 - `tbd_user_payment_methods.is_default`: 1 = medio/domicilio predeterminado; 0 = no predeterminado.
 - `tbd_user_payment_methods.status`: Interpretación por patrón del esquema: 1 = activo/habilitado; 0 = inactivo/deshabilitado. Las rutinas de baja/restauración confirman este uso para usuarios y productos..
 - `tbd_users_wishlist_products.status`: Interpretación por patrón del esquema: 1 = activo/habilitado; 0 = inactivo/deshabilitado. Las rutinas de baja/restauración confirman este uso para usuarios y productos..
+- `tb_order_cancellations.cancellation_scope`: WholeOrder, SellerOrder, Items.
+- `tb_order_cancellations.cancellation_status`: Requested, Approved, Rejected, Completed.
+- `tb_orders.status_string`: Registered, Payed, Canceled, Delivered, Devolved, Attended, Sended.
+- `tb_orders.status`: 1 = activo/habilitado; 0 = inactivo/deshabilitado.
+- `tb_payment_methods.status`: 1 = activo/habilitado; 0 = inactivo/deshabilitado.
+- `tb_payment_transaction.transaction_type`: Authorization, Capture, Charge, Void, Refund, Chargeback, Adjustment.
+- `tb_payment_transaction.transaction_status`: Pending, Succeeded, Failed.
+- `tb_payments.payment_status`: Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded.
+- `tb_refunds.reason`: Cancellation, Return, Adjustment, Goodwill.
+- `tb_refunds.refund_status`: Pending, Submitted, Succeeded, Failed, Canceled.
+- `tb_returns.return_status`: Requested, Authorized, Rejected, LabelCreated, InTransit, Received, Inspected, Approved, PartiallyApproved, Refunded, Closed.
+- `tb_shipments.shipment_status`: Pending, LabelCreated, ReadyToShip, InTransit, OutForDelivery, Delivered, DeliveryFailed, Lost, Returned.
+- `tbd_buyer_orders.fulfillment_status`: Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned.
+- `tbd_buyer_orders.status`: 1 = activo/habilitado; 0 = inactivo/deshabilitado.
+- `tbd_return_items.item_condition`: Unopened, Unused, Used, Damaged, Defective, Other.
+- `tbd_return_items.disposition`: Pending, Restock, Repair, Dispose, SupplierReturn.
+- `tbd_return_items.item_status`: Requested, Approved, Rejected, Received, Refunded.
 
 **Convenciones:** `tb_` identifica tablas principales, `tbc_` catálogos, `tbd_` detalles/asociaciones, `vw_` vistas, `trg_` triggers y `sp_` procedimientos. `fk_`, `uk_` y `chk_` suelen nombrar FK, UNIQUE y CHECK; en el dump también aparecen nombres autogenerados `*_ibfk_*`. Los triggers escriben registros de operación en `tb_logs`; las vistas de trazabilidad ofrecen proyecciones para consulta.
 
@@ -529,6 +889,12 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 - **Media:** `tb_products` y `tb_users` tienen dos triggers de auditoría para cada evento INSERT, UPDATE y DELETE (uno con prefijo corto y otro `trg_tb_*`); ambos insertan en `tb_logs` y pueden duplicar el historial. Recomendación: Consolidar cada evento en un trigger o confirmar que las dos entradas responden a requisitos distintos y documentar su diferencia.
 - **Media:** `tbd_cart_items` referencia por separado `provider_ID` y `product_ID` a la tabla de asociaciones producto-proveedor; las dos FK independientes no garantizan que ambas claves pertenezcan al mismo vínculo. Recomendación: Si cada renglón debe corresponder a una asociación proveedor-producto válida, reemplazar las FK separadas por una FK compuesta sobre ambas columnas.
 - **Media:** `tbd_order_items` referencia por separado `provider_ID` y `product_ID` a la tabla de asociaciones producto-proveedor; las dos FK independientes no garantizan que ambas claves pertenezcan al mismo vínculo. Recomendación: Si cada renglón debe corresponder a una asociación proveedor-producto válida, reemplazar las FK separadas por una FK compuesta sobre ambas columnas.
+- **Media:** `fn_simulate_country_code`, `fn_simulate_courtesy_title_id` y `fn_simulate_gender_id` consultan `tbc_countries`, `tbc_gender_options` y `tbc_courtesy_titles`, que no existen en este respaldo. Recomendación: Incluir esas tablas catálogo en el esquema o los procedimientos `sp_simulate_*` fallarán al ejecutarse.
+- **Media:** `tbd_buyer_orders` y `tb_seller_orders` tienen estructura casi idéntica (`seller_ID`, `fulfillment_status`, `status`), pero `tbd_order_items` sigue apuntando a `tb_seller_orders` mientras `tb_shipments`, `tb_returns` y `tb_order_cancellations` apuntan a `tbd_buyer_orders`. Recomendación: Confirmar si `tbd_buyer_orders` reemplaza a `tb_seller_orders` y unificar las referencias.
+- **Media:** `tb_orders` no está relacionada con `tb_seller_orders` ni con `tbd_buyer_orders`; solo `tb_payments` y `tb_order_cancellations` la referencian. Recomendación: Definir la relación orden–orden de vendedor para conservar la trazabilidad completa de la compra.
+- **Baja:** `tb_orders.total_cost` usa `decimal(10,3)` mientras los demás importes usan `decimal(10,2)` o `decimal(12,2)`. Recomendación: Unificar escala y precisión de importes.
+- **Baja:** `tb_orders.status_string` usa etiquetas con ortografía irregular (`Payed`, `Sended`, `Devolved`). Recomendación: Normalizar a `Paid`, `Sent`, `Returned` si no hay dependencias.
+- **Baja:** Las tablas nuevas de pagos, envíos, devoluciones y cancelaciones registran auditoría con un trigger de una sola sentencia que escribe solo el ID en `tb_logs`. Recomendación: Ampliar el detalle auditado si se requiere conocer qué campo cambió.
 
 ## Pendientes por confirmar
 
@@ -537,3 +903,173 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 - Significado de etiquetas ENUM y códigos numéricos sin catálogo o comentario explícito.
 - Moneda, unidades de medida, zona horaria, fórmulas y validaciones de formato no expresadas en DDL.
 - Semántica funcional de banderas cuando no está documentada en comentarios ni constraints.
+
+## Diagrama entidad-relación
+
+Modelo generado desde las 42 llaves foráneas de `Respaldo 28-10-26.sql` (las cardinalidades 1:1 corresponden a columnas FK con PK o UNIQUE). Cada entidad muestra solo sus llaves; el detalle de columnas está en la sección de tablas. El mismo diagrama está en [diagrama_er.mmd](diagrama_er.mmd).
+
+```mermaid
+erDiagram
+    tb_carts ||--o{ tbd_cart_items : "cart_ID"
+    tb_order_cancellations ||--o{ tb_refunds : "cancellation_ID"
+    tb_order_cancellations ||--o{ tbd_cancellation_items : "cancellation_ID"
+    tb_orders ||--o{ tb_order_cancellations : "order_ID"
+    tb_orders ||--o{ tb_payments : "order_ID"
+    tb_payment_methods ||--o{ tb_payments : "payment_method_ID"
+    tb_payments ||--o{ tb_payment_transaction : "payment_ID"
+    tb_payments ||--o{ tb_refunds : "payment_ID"
+    tb_products ||--o{ tbd_products_categories : "product_ID"
+    tb_products ||--o{ tbd_products_users_providers : "product_ID"
+    tb_products ||--o{ tbd_users_wishlist_products : "product_ID"
+    tb_refunds ||--o{ tb_payment_transaction : "refund_ID, payment_ID"
+    tb_returns ||--o{ tb_refunds : "return_ID"
+    tb_returns ||--o{ tbd_return_items : "return_ID"
+    tb_seller_orders ||--o{ tbd_order_items : "seller_order_ID"
+    tb_user_addresses ||--o{ tb_shipments : "address_ID"
+    tb_user_addresses ||--o{ tbd_address_components : "address_ID"
+    tb_users ||--o{ tb_order_cancellations : "requested_by_user_ID"
+    tb_users ||--o{ tb_orders : "User_ID"
+    tb_users ||--o{ tb_refunds : "requested_by_user_ID"
+    tb_users ||--o{ tb_returns : "requested_by_user_ID"
+    tb_users ||--o{ tb_seller_orders : "seller_ID"
+    tb_users ||--o{ tb_user_addresses : "user_ID"
+    tb_users ||--o{ tbd_buyer_orders : "seller_ID"
+    tb_users ||--o{ tbd_products_users_providers : "user_ID"
+    tb_users ||--o{ tbd_user_payment_methods : "user_ID"
+    tb_users ||--o{ tbd_users_wishlist_products : "user_ID"
+    tb_users ||--|| tb_carts : "user_ID"
+    tb_users ||--|| tb_people : "user_ID"
+    tbc_categories ||--o{ tbc_categories : "sup_id_category"
+    tbc_categories ||--o{ tbd_products_categories : "category_ID"
+    tbc_payment_methods_types ||--o{ tbd_user_payment_methods : "payment_method_type_ID"
+    tbd_address_components ||--o{ tbd_address_components : "address_ID, address_sup_ID"
+    tbd_buyer_orders ||--o{ tb_order_cancellations : "buyer_order_ID"
+    tbd_buyer_orders ||--o{ tb_returns : "buyer_order_ID"
+    tbd_buyer_orders ||--o{ tb_shipments : "buyer_order_ID"
+    tbd_order_items ||--o{ tbd_cancellation_items : "order_item_ID"
+    tbd_order_items ||--o{ tbd_return_items : "order_item_ID"
+    tbd_products_users_providers ||--o{ tbd_cart_items : "product_ID"
+    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID"
+    tbd_products_users_providers ||--o{ tbd_order_items : "product_ID"
+    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID"
+
+    tb_carts {
+        int_unsigned ID PK
+        int user_ID FK
+    }
+    tb_logs {
+        int ID PK
+    }
+    tb_order_cancellations {
+        int_unsigned ID PK
+        int_unsigned order_ID FK
+        int_unsigned buyer_order_ID FK
+        int requested_by_user_ID FK
+    }
+    tb_orders {
+        int_unsigned ID PK
+        int User_ID FK
+    }
+    tb_payment_methods {
+        int_unsigned ID PK
+    }
+    tb_payment_transaction {
+        int_unsigned ID PK
+        int_unsigned payment_ID FK
+        int_unsigned refund_ID FK
+    }
+    tb_payments {
+        int_unsigned ID PK
+        int_unsigned order_ID FK
+        int_unsigned payment_method_ID FK
+    }
+    tb_people {
+        bigint_unsigned person_ID PK
+        int user_ID FK
+    }
+    tb_products {
+        int_unsigned id PK
+    }
+    tb_refunds {
+        int_unsigned ID PK
+        int_unsigned payment_ID FK
+        int_unsigned cancellation_ID FK
+        int_unsigned return_ID FK
+        int requested_by_user_ID FK
+    }
+    tb_returns {
+        int_unsigned ID PK
+        int_unsigned buyer_order_ID FK
+        int requested_by_user_ID FK
+    }
+    tb_seller_orders {
+        int_unsigned ID PK
+        int seller_ID FK
+    }
+    tb_shipments {
+        int_unsigned ID PK
+        int_unsigned buyer_order_ID FK
+        bigint_unsigned address_ID FK
+    }
+    tb_user_addresses {
+        bigint_unsigned ID PK
+        int user_ID FK
+    }
+    tb_users {
+        int ID PK
+    }
+    tbc_categories {
+        int_unsigned ID PK
+        int_unsigned sup_id_category FK
+    }
+    tbc_payment_methods_types {
+        int_unsigned ID PK
+    }
+    tbd_address_components {
+        bigint_unsigned ID PK
+        bigint_unsigned address_ID FK
+        bigint_unsigned address_sup_ID FK
+    }
+    tbd_buyer_orders {
+        int_unsigned ID PK
+        int seller_ID FK
+    }
+    tbd_cancellation_items {
+        int_unsigned ID PK
+        int_unsigned cancellation_ID FK
+        int_unsigned order_item_ID FK
+    }
+    tbd_cart_items {
+        int_unsigned cart_ID PK
+        int provider_ID PK
+        int_unsigned product_ID PK
+    }
+    tbd_order_items {
+        int_unsigned ID PK
+        int_unsigned seller_order_ID FK
+        int_unsigned product_ID FK
+        int provider_ID FK
+    }
+    tbd_products_categories {
+        int_unsigned category_ID PK
+        int_unsigned product_ID PK
+    }
+    tbd_products_users_providers {
+        int user_ID PK
+        int_unsigned product_ID PK
+    }
+    tbd_return_items {
+        int_unsigned ID PK
+        int_unsigned return_ID FK
+        int_unsigned order_item_ID FK
+    }
+    tbd_user_payment_methods {
+        bigint_unsigned ID PK
+        int user_ID FK
+        int_unsigned payment_method_type_ID FK
+    }
+    tbd_users_wishlist_products {
+        int user_ID PK
+        int_unsigned product_ID PK
+    }
+```

@@ -1,6 +1,6 @@
 # Diccionario de datos de `db_test`
 
-Documentación derivada de `Respaldo 28-10-26.sql`. Se procesaron definiciones DDL; no se consultaron ni incluyeron sentencias `INSERT`.
+Documentación derivada de `Respaldo 28-10-26 .sql`. Se procesaron definiciones DDL; no se consultaron ni incluyeron sentencias `INSERT`.
 
 ## Archivos
 
@@ -11,4 +11,4 @@ Documentación derivada de `Respaldo 28-10-26.sql`. Se procesaron definiciones D
 
 ## Resumen ejecutivo
 
-El DDL contiene 27 tablas, 29 vistas, 84 triggers, 6 procedimientos y 4 funciones. Los conteos proporcionados para seis tablas no se pueden recalcular desde el DDL. El dump indica MySQL 8.0.42 frente a 8.0.36 en la solicitud. La semántica ausente queda marcada como `No especificado` y se lista en Pendientes por confirmar.
+El DDL contiene 27 tablas, 29 vistas, 85 triggers, 15 procedimientos y 6 funciones. Se insertaron masivamente **10 222 usuarios** (`sp_generate_bulk_users`, 3 lotes) de un total de 10 239 en `tb_users`. Los conteos proporcionados para seis tablas no se pueden recalcular desde el DDL. El dump indica MySQL 8.0.42 frente a 8.0.36 en la solicitud. La semántica ausente queda marcada como `No especificado` y se lista en Pendientes por confirmar.

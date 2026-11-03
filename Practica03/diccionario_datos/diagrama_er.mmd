@@ -4,6 +4,7 @@ erDiagram
     tb_order_cancellations ||--o{ tbd_cancellation_items : "cancellation_ID"
     tb_orders ||--o{ tb_order_cancellations : "order_ID"
     tb_orders ||--o{ tb_payments : "order_ID"
+    tb_orders ||--o{ tbd_buyer_orders : "order_ID"
     tb_payment_methods ||--o{ tb_payments : "payment_method_ID"
     tb_payments ||--o{ tb_payment_transaction : "payment_ID"
     tb_payments ||--o{ tb_refunds : "payment_ID"
@@ -13,9 +14,9 @@ erDiagram
     tb_refunds ||--o{ tb_payment_transaction : "refund_ID, payment_ID"
     tb_returns ||--o{ tb_refunds : "return_ID"
     tb_returns ||--o{ tbd_return_items : "return_ID"
-    tb_seller_orders ||--o{ tbd_order_items : "seller_order_ID"
     tb_user_addresses ||--o{ tb_shipments : "address_ID"
     tb_user_addresses ||--o{ tbd_address_components : "address_ID"
+    tb_users ||--o{ tb_carts : "user_ID"
     tb_users ||--o{ tb_order_cancellations : "requested_by_user_ID"
     tb_users ||--o{ tb_orders : "User_ID"
     tb_users ||--o{ tb_refunds : "requested_by_user_ID"
@@ -26,7 +27,6 @@ erDiagram
     tb_users ||--o{ tbd_products_users_providers : "user_ID"
     tb_users ||--o{ tbd_user_payment_methods : "user_ID"
     tb_users ||--o{ tbd_users_wishlist_products : "user_ID"
-    tb_users ||--|| tb_carts : "user_ID"
     tb_users ||--|| tb_people : "user_ID"
     tbc_categories ||--o{ tbc_categories : "sup_id_category"
     tbc_categories ||--o{ tbd_products_categories : "category_ID"
@@ -35,12 +35,12 @@ erDiagram
     tbd_buyer_orders ||--o{ tb_order_cancellations : "buyer_order_ID"
     tbd_buyer_orders ||--o{ tb_returns : "buyer_order_ID"
     tbd_buyer_orders ||--o{ tb_shipments : "buyer_order_ID"
+    tbd_buyer_orders ||--o{ tbd_order_items : "buyer_order_ID"
     tbd_order_items ||--o{ tbd_cancellation_items : "order_item_ID"
     tbd_order_items ||--o{ tbd_return_items : "order_item_ID"
-    tbd_products_users_providers ||--o{ tbd_cart_items : "product_ID"
-    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID"
-    tbd_products_users_providers ||--o{ tbd_order_items : "product_ID"
-    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID"
+    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID, product_ID"
+    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID, product_ID"
+    tbd_user_payment_methods ||--o{ tb_payments : "user_payment_method_ID"
 
     tb_carts {
         int_unsigned ID PK
@@ -71,6 +71,7 @@ erDiagram
         int_unsigned ID PK
         int_unsigned order_ID FK
         int_unsigned payment_method_ID FK
+        bigint_unsigned user_payment_method_ID FK
     }
     tb_people {
         bigint_unsigned person_ID PK
@@ -121,6 +122,7 @@ erDiagram
     }
     tbd_buyer_orders {
         int_unsigned ID PK
+        int_unsigned order_ID FK
         int seller_ID FK
     }
     tbd_cancellation_items {
@@ -135,7 +137,7 @@ erDiagram
     }
     tbd_order_items {
         int_unsigned ID PK
-        int_unsigned seller_order_ID FK
+        int_unsigned buyer_order_ID FK
         int_unsigned product_ID FK
         int provider_ID FK
     }

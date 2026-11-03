@@ -1,6 +1,6 @@
 # Diccionario de datos — `db_test`
 
-> Fuente: `Respaldo 28-10-26.sql`. El encabezado del dump indica MySQL 8.0.42; el objetivo solicitado es 8.0.36. Se extrajo únicamente DDL y se omitieron INSERT y datos.
+> Fuente: `Respaldo 28-10-26 .sql` (MySQL 8.0.42; el objetivo solicitado es 8.0.36). La estructura se tomó del DDL y los conteos de registros de la restauración del respaldo.
 
 ## Índice
 
@@ -21,20 +21,60 @@
 |---|---:|
 | Tablas | 27 |
 | Vistas | 29 |
-| Triggers | 84 |
-| Procedimientos | 6 |
-| Funciones | 4 |
+| Triggers | 85 |
+| Procedimientos | 15 |
+| Funciones | 6 |
+| **Usuarios insertados masivamente** | **10 222** |
 
-Conteos comunicados en la solicitud; no se recalculan desde el DDL:
+Registros por tabla con datos (obtenidos al restaurar `Respaldo 28-10-26 .sql`; las demás tablas están vacías):
 
 | Tabla | Registros |
 |---|---:|
-| `tb_logs` | 38 054 |
-| `tbd_products_categories` | 23 020 |
-| `tb_products` | 15 007 |
+| `tb_logs` | 83 737 |
+| `tbd_products_categories` | 23 020 |
+| `tb_products` | 15 007 |
+| `tbd_products_users_providers` | 15 007 |
+| `tb_users` | 10 239 |
+| `tb_people` | 10 225 |
 | `tbc_categories` | 100 |
-| `tb_users` | 16 |
-| `tb_people` | 3 |
+| `tb_payment_methods` | 4 |
+| `tbc_payment_methods_types` | 4 |
+
+### Carga masiva de usuarios
+
+De los 10 239 usuarios de `tb_users`, **10 222 se insertaron de forma masiva** con `sp_generate_bulk_users` y 17 son altas manuales o de prueba. Cada usuario masivo tiene su registro en `tb_people` (10 222 personas; el total de `tb_people` es 10 225).
+
+| Concepto | Valor |
+|---|---:|
+| Usuarios insertados masivamente (`bulk_*@utxicotepec.edu.mx`) | 10 222 |
+| Personas creadas junto con ellos (`tb_people`) | 10 222 |
+| Usuarios masivos activos (`status` = 1) | 10 222 |
+| Usuarios no masivos (altas manuales o de prueba) | 17 |
+| Total en `tb_users` | 10 239 |
+| Entradas de auditoría `Create` en `tb_logs` de la carga | 20 444 (dos triggers por usuario, usuario de BD `adrian.rios@host.docker.internal`) |
+
+Lotes ejecutados el 28-10-2026 (la marca del correo es la hora Unix del lote):
+
+| Lote | Marca de tiempo | Inicio | Usuarios | ID inicial | ID final |
+|---:|---|---|---:|---:|---:|
+| 1 | 1793233393 | 2026-10-28 18:23:13 | 1 000 | 27 | 1 026 |
+| 2 | 1793233449 | 2026-10-28 18:24:09 | 2 000 | 1 029 | 3 028 |
+| 3 | 1793233453 | 2026-10-28 18:24:13 | 7 222 | 3 029 | 10 250 |
+| **Total** | | | **10 222** | | |
+
+Distribución por país de los usuarios masivos (`tb_people.country_code`):
+
+| País | Personas |
+|---|---:|
+| US | 2 485 |
+| MX | 1 570 |
+| CL | 1 567 |
+| PE | 1 560 |
+| AR | 1 538 |
+| CO | 1 502 |
+
+> Cómo reproducir el conteo: `SELECT COUNT(*) FROM tb_users WHERE email LIKE 'bulk\_%@utxicotepec.edu.mx';`
+
 
 ## Tablas y columnas
 
@@ -42,7 +82,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_carts`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Mantiene el carrito de compra de una cuenta, su estado y marcas temporales. Es la cabecera que agrupa artículos antes de completar una compra.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -50,16 +90,17 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de el carrito de compra. Distingue el registro y sostiene las referencias definidas dentro del esquema. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. Identificador interno de el carrito de compra. Distingue el registro y sostiene las referencias definidas dentro del esquema. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 2 | `user_ID` | `int` | NO | `No especificado` | — | FK | Identificador de la cuenta de usuario vinculada; permite asociar este dato o actividad a su titular. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `user_ID ∈ ℤ`. Identificador de la cuenta de usuario vinculada; permite asociar este dato o actividad a su titular. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 3 | `status` | `bit (1)` | SÍ | `b'1'` | — | Ninguna | Indicador del estado operativo de el carrito de compra. Codificación: Interpretación por patrón del esquema: 1 = activo/habilitado; 0 = inactivo/deshabilitado. Las rutinas de baja/restauración confirman este uso para usuarios y productos.. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ Cadena/valor binario según tipo`. Indicador del estado operativo de el carrito de compra. Codificación: Interpretación por patrón del esquema: 1 = activo/habilitado; 0 = inactivo/deshabilitado. Las rutinas de baja/restauración confirman este uso para usuarios y productos.. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
-| 4 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
-| 5 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
+| 4 | `active_user_ID` | `int` | SÍ | `NULL` | GENERATED STORED | Ninguna | Columna generada: contiene user_ID solo si el carrito está activo (status = 1) y NULL en caso contrario. Su UNIQUE garantiza un único carrito activo por usuario. | Valor: Monovalor. Origen: Calculado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa discreta. Composición formal: =. Dominio formal: `active_user_ID ∈ ℤ`. |
+| 5 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
+| 6 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el carrito de compra, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_cart_user` (`user_ID`); FK `tb_carts_ibfk_1` (`user_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL
-**Relaciones:** `tb_carts_ibfk_1`: `tb_carts` (user_ID) → `tb_users` (ID); cardinalidad 1:1 padre:hija.; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_1`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_cart_active_user` (`active_user_ID`); FK `tb_carts_ibfk_1` (`user_ID`) → `tb_users` (`ID`); KEY `idx_cart_user` (`user_ID`)
+**Relaciones:** `tb_carts_ibfk_1`: `tb_carts` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_1`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tb_carts_after_insert`, `trg_tb_carts_after_update`, `trg_tb_carts_after_delete`
 
 ### `tb_logs`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 38054.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 83 737.
 - **Propósito de negocio:** Conserva eventos de auditoría generados por triggers para dar seguimiento a altas, cambios y bajas. Funciona como historial técnico de las operaciones capturadas.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -73,12 +114,12 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 7 | `operation_status` | `bit (1)` | SÍ | `b'1'` | — | Ninguna | Resultado del evento de auditoría. Codificación: 1 = operación registrada como correcta; 0 = operación marcada como fallida; los triggers AFTER asignan 1 al evento auditado. En el contexto de el registro de auditoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `operation_status ∈ Cadena/valor binario según tipo`. Resultado del evento de auditoría. Codificación: 1 = operación registrada como correcta; 0 = operación marcada como fallida; los triggers AFTER asignan 1 al evento auditado. En el contexto de el registro de auditoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
 **Restricciones/índices:** PK (`ID`)
-**Relaciones:** No hay relaciones FK declaradas.
+**Relaciones:** Ninguna.
 **Triggers asociados:** Ninguno.
 
 ### `tb_order_cancellations`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Solicitudes de cancelación de una orden completa, de una orden de vendedor o de ciertos ítems, con su estado de revisión.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -104,7 +145,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_orders`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Cabecera de la orden de compra de un comprador: clave de la orden, totales y estado global del ciclo de vida.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -113,19 +154,19 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 2 | `key` | `varchar (40)` | NO | `No especificado` | — | Ninguna | Clave de negocio de la orden (cadena de hasta 40 caracteres) que la identifica fuera del ID interno. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `key ∈ Cadena` (varchar(40)). |
 | 3 | `User_ID` | `int` | NO | `No especificado` | — | FK | Usuario comprador dueño de la orden. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `User_ID ∈ ℤ`. |
 | 4 | `total_products` | `int` | NO | `No especificado` | — | Ninguna | Cantidad total de productos incluidos en la orden. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa discreta. Composición formal: =. Dominio formal: `total_products ∈ ℤ`. |
-| 5 | `total_cost` | `decimal (10,3)` | NO | `'0.000'` | — | Ninguna | Costo total de la orden con tres decimales. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `total_cost ∈ ℚ` (decimal(10,3)). |
+| 5 | `total_cost` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Costo total de la orden con tres decimales. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `total_cost ∈ ℚ` (decimal(12,2)). |
 | 6 | `status_string` | `enum ('Registered','Payed','Canceled','Delivered','Devolved','Attended','Sended')` | NO | `'Registered'` | — | Ninguna | Estado de ciclo de vida de la orden. Valores: Registered, Payed, Canceled, Delivered, Devolved, Attended, Sended. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status_string ∈ {Registered, Payed, Canceled, Delivered, Devolved, Attended, Sended}`. |
 | 7 | `status` | `bit (1)` | SÍ | `b'1'` | — | Ninguna | Indicador de estado operativo: 1 = activo, 0 = inactivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ {0, 1}`. |
 | 8 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
 | 9 | `last_update` | `datetime` | SÍ | `NULL` | — | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
 
-**Restricciones/índices:** PK (`ID`); FK `fk_user_2` (`User_ID`) → `tb_users` (`ID`); KEY `fk_user_2_idx` (`User_ID`)
-**Relaciones:** `fk_user_2`: `tb_orders` (User_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_payments` mediante `fk_payment_order`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_orders_key` (`key`); FK `fk_user_2` (`User_ID`) → `tb_users` (`ID`); KEY `fk_user_2_idx` (`User_ID`)
+**Relaciones:** `fk_user_2`: `tb_orders` (User_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_payments` mediante `fk_payment_order`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_buyer_orders` mediante `fk_buyer_orders_order`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tb_orders_after_insert`, `trg_tb_orders_after_update`, `trg_tb_orders_after_delete`
 
 ### `tb_payment_methods`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 4.
 - **Propósito de negocio:** Catálogo de métodos de pago aceptados por la plataforma (nombre único, descripción y estado).
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -143,7 +184,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_payment_transaction`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Bitácora de transacciones con el proveedor de pagos (autorización, captura, cargo, anulación, reembolso, contracargo) ligada a un pago y, si aplica, a un reembolso.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -171,30 +212,31 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_payments`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Pagos aplicados a una orden: monto, moneda, método, estado y referencia del proveedor de pagos.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
 |---:|---|---|:---:|---|---|---|---|---|
 | 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de payments. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
-| 2 | `order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden a la que pertenece el registro. Referencia a `tb_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_ID ∈ ℤ⁺`. |
+| 2 | `order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden de compra (tb_orders) a la que pertenece el registro. Referencia a `tb_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_ID ∈ ℤ⁺`. |
 | 3 | `payment_method_ID` | `int unsigned` | NO | `No especificado` | — | FK | Método de pago empleado. Referencia a `tb_payment_methods.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_payment_methods.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `payment_method_ID ∈ ℤ⁺`. |
-| 4 | `amount` | `decimal (10,2)` | NO | `No especificado` | — | Ninguna | Monto de la operación; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `amount ∈ ℚ` (decimal(10,2)). |
-| 5 | `currency` | `char (3)` | NO | `'MXN'` | — | Ninguna | Código de moneda de tres letras (por defecto MXN). | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `currency ∈ Cadena` (char(3)). |
-| 6 | `payment_status` | `enum ('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded')` | NO | `'Pending'` | — | Ninguna | Estado del pago. Valores: Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `payment_status ∈ {Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded}`. |
-| 7 | `provider` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Proveedor externo que procesó la operación. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider ∈ Cadena` (varchar(60)). |
-| 8 | `provider_reference` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Referencia del pago asignada por el proveedor; única junto con el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider_reference ∈ Cadena` (varchar(150)). |
-| 9 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
-| 10 | `paid_date` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora en que el pago quedó liquidado. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `paid_date ∈ FechaHora`. |
-| 11 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+| 4 | `user_payment_method_ID` | `bigint unsigned` | SÍ | `NULL` | — | FK | Tarjeta o método registrado por el usuario (tbd_user_payment_methods) con el que se hizo el pago; puede ser NULL para métodos sin registro previo. Referencia a `tbd_user_payment_methods.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: FK (tbd_user_payment_methods.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `user_payment_method_ID ∈ ℤ⁺`. |
+| 5 | `amount` | `decimal (10,2)` | NO | `No especificado` | — | Ninguna | Monto de la operación; el CHECK exige que sea mayor que cero. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `amount ∈ ℚ` (decimal(10,2)). |
+| 6 | `currency` | `char (3)` | NO | `'MXN'` | — | Ninguna | Código de moneda de tres letras (por defecto MXN). | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `currency ∈ Cadena` (char(3)). |
+| 7 | `payment_status` | `enum ('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded')` | NO | `'Pending'` | — | Ninguna | Estado del pago. Valores: Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `payment_status ∈ {Pending, Authorized, Paid, Failed, Refunded, PartiallyRefunded}`. |
+| 8 | `provider` | `varchar (60)` | SÍ | `NULL` | — | Ninguna | Proveedor externo que procesó la operación. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider ∈ Cadena` (varchar(60)). |
+| 9 | `provider_reference` | `varchar (150)` | SÍ | `NULL` | — | Ninguna | Referencia del pago asignada por el proveedor; única junto con el proveedor. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `provider_reference ∈ Cadena` (varchar(150)). |
+| 10 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 11 | `paid_date` | `datetime` | SÍ | `NULL` | — | Ninguna | Fecha y hora en que el pago quedó liquidado. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `paid_date ∈ FechaHora`. |
+| 12 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_provider_reference` (`provider`, `provider_reference`); FK `fk_payment_method` (`payment_method_ID`) → `tb_payment_methods` (`ID`); FK `fk_payment_order` (`order_ID`) → `tb_orders` (`ID`); CHECK `chk_payment_amount`: (`amount` > 0); KEY `idx_payment_order` (`order_ID`); KEY `fk_payment_method` (`payment_method_ID`)
-**Relaciones:** `fk_payment_method`: `tb_payments` (payment_method_ID) → `tb_payment_methods` (ID); cardinalidad 1:N padre:hija.; `fk_payment_order`: `tb_payments` (order_ID) → `tb_orders` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_payment_transaction` mediante `fk_payment_transaction_payment`; cardinalidad padre:hija 1:N.; Tabla hija `tb_refunds` mediante `fk_refunds_payment`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_provider_reference` (`provider`, `provider_reference`); FK `fk_payment_method` (`payment_method_ID`) → `tb_payment_methods` (`ID`); FK `fk_payment_order` (`order_ID`) → `tb_orders` (`ID`); FK `fk_payment_user_method` (`user_payment_method_ID`) → `tbd_user_payment_methods` (`ID`); CHECK `chk_payment_amount`: (`amount` > 0); KEY `idx_payment_order` (`order_ID`); KEY `fk_payment_method` (`payment_method_ID`); KEY `idx_payment_user_method` (`user_payment_method_ID`)
+**Relaciones:** `fk_payment_method`: `tb_payments` (payment_method_ID) → `tb_payment_methods` (ID); cardinalidad 1:N padre:hija.; `fk_payment_order`: `tb_payments` (order_ID) → `tb_orders` (ID); cardinalidad 1:N padre:hija.; `fk_payment_user_method`: `tb_payments` (user_payment_method_ID) → `tbd_user_payment_methods` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_payment_transaction` mediante `fk_payment_transaction_payment`; cardinalidad padre:hija 1:N.; Tabla hija `tb_refunds` mediante `fk_refunds_payment`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tb_payments_after_insert`, `trg_tb_payments_after_update`, `trg_tb_payments_after_delete`
 
 ### `tb_people`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 3.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 10 225.
 - **Propósito de negocio:** Almacena atributos personales separados de las credenciales de acceso. Relaciona los datos de perfil humano con una cuenta cuando así lo establecen las claves.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -212,13 +254,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 11 | `creation_date` | `datetime` | SÍ | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la persona del perfil, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la persona del perfil, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 12 | `last_update` | `datetime` | SÍ | `CURRENT_TIMESTAMP` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la persona del perfil, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la persona del perfil, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`person_ID`); UNIQUE `user_ID` (`user_ID`); FK `fk_persons_users` (`user_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL
+**Restricciones/índices:** PK (`person_ID`); UNIQUE `user_ID` (`user_ID`); FK `fk_persons_users` (`user_ID`) → `tb_users` (`ID`)
 **Relaciones:** `fk_persons_users`: `tb_people` (user_ID) → `tb_users` (ID); cardinalidad 1:1 padre:hija.
 **Triggers asociados:** `trg_tb_people_after_insert`, `trg_tb_people_after_update`, `trg_tb_people_after_delete`
 
 ### `tb_products`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 15007.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 15 007.
 - **Propósito de negocio:** Representa los productos registrados en el catálogo, sus atributos comerciales y su estado. Es entidad base para categorías, órdenes, proveedores y listas de deseos.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -239,7 +281,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_refunds`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Reembolsos asociados a un pago; su origen puede ser una cancelación, una devolución o un ajuste/cortesía.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -267,7 +309,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_returns`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Solicitudes de devolución sobre una orden de vendedor/comprador, con motivo, estado y guía de retorno.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -294,7 +336,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_seller_orders`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Registra cabeceras de órdenes vinculadas con vendedor y comprador conforme a las claves del esquema. Agrupa la información de estado y fecha para el seguimiento de la transacción.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -308,13 +350,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 7 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la orden de vendedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la orden de vendedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 8 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la orden de vendedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la orden de vendedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); INDEX `seller_ID` (`seller_ID`); FK `tb_seller_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL; CHECK CONSTRAINT `tb_seller_orders_chk_1` CHECK ((`subtotal` >= 0)); CHECK CONSTRAINT `tb_seller_orders_chk_2` CHECK ((`shipping_cost` >= 0))
-**Relaciones:** `tb_seller_orders_ibfk_1`: `tb_seller_orders` (seller_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_1`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`ID`); FK `tb_seller_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tb_seller_orders_chk_1`: (`subtotal` >= 0); CHECK `tb_seller_orders_chk_2`: (`shipping_cost` >= 0); KEY `seller_ID` (`seller_ID`)
+**Relaciones:** `tb_seller_orders_ibfk_1`: `tb_seller_orders` (seller_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.
 **Triggers asociados:** `trg_tb_seller_orders_after_insert`, `trg_tb_seller_orders_after_update`, `trg_tb_seller_orders_after_delete`
 
 ### `tb_shipments`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Envíos de una orden de vendedor/comprador: destinatario, dirección, paquetería, rastreo, costo y fechas.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -348,7 +390,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tb_user_addresses`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Guarda domicilios asociados a usuarios para procesos de compra o perfil. Separa la relación con la cuenta de los componentes detallados del domicilio.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -366,13 +408,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 11 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la dirección de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la dirección de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 12 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la dirección de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la dirección de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); INDEX `idx_user_addresses` (`user_ID`); FK `fk_addresses_users` (`user_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL; CHECK CONSTRAINT `chk_coordinates` CHECK ((((`latitude` is null) and (`longitude` is null)) or ((`latitude` is not null) and (`longitude` is not null)))); CHECK CONSTRAINT `chk_latitude` CHECK ((`latitude` between -(90) and 90)); CHECK CONSTRAINT `chk_longitude` CHECK ((`longitude` between -(180) and 180))
-**Relaciones:** `fk_addresses_users`: `tb_user_addresses` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_address_components` mediante `fk_component_address`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`ID`); FK `fk_addresses_users` (`user_ID`) → `tb_users` (`ID`); CHECK `chk_coordinates`: (((`latitude` is null) and (`longitude` is null)) or ((`latitude` is not null) and (`longitude` is not null))); CHECK `chk_latitude`: (`latitude` between -(90) and 90); CHECK `chk_longitude`: (`longitude` between -(180) and 180); KEY `idx_user_addresses` (`user_ID`)
+**Relaciones:** `fk_addresses_users`: `tb_user_addresses` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_shipments` mediante `fk_shipments_address`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_address_components` mediante `fk_component_address`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tb_user_addresses_after_insert`, `trg_tb_user_addresses_after_update`, `trg_tb_user_addresses_after_delete`
 
 ### `tb_users`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 16.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 10 239.
 - **Propósito de negocio:** Administra cuentas de usuario y sus datos de acceso o estado. Se relaciona con perfiles, carritos, domicilios, compras y funciones adicionales del sistema.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -387,7 +429,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 8 | `status` | `bit (1)` | NO | `b'1'` | — | Ninguna | Indicador del estado operativo de la cuenta de usuario. Codificación: Interpretación por patrón del esquema: 1 = activo/habilitado; 0 = inactivo/deshabilitado. Las rutinas de baja/restauración confirman este uso para usuarios y productos.. En el contexto de la cuenta de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ Cadena/valor binario según tipo`. Indicador del estado operativo de la cuenta de usuario. Codificación: Interpretación por patrón del esquema: 1 = activo/habilitado; 0 = inactivo/deshabilitado. Las rutinas de baja/restauración confirman este uso para usuarios y productos.. En el contexto de la cuenta de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
 **Restricciones/índices:** PK (`ID`); UNIQUE `email` (`email`); UNIQUE `nickname` (`nickname`)
-**Relaciones:** Tabla hija `tb_carts` mediante `tb_carts_ibfk_1`; cardinalidad padre:hija 1:1.; Tabla hija `tb_people` mediante `fk_persons_users`; cardinalidad padre:hija 1:1.; Tabla hija `tb_seller_orders` mediante `tb_seller_orders_ibfk_1`; cardinalidad padre:hija 1:N.; Tabla hija `tb_user_addresses` mediante `fk_addresses_users`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_products_users_providers` mediante `fk_user1`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_user_payment_methods` mediante `tbd_user_payment_methods_ibfk_1`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_users_wishlist_products` mediante `fk_user2`; cardinalidad padre:hija 1:N.
+**Relaciones:** Tabla hija `tb_carts` mediante `tb_carts_ibfk_1`; cardinalidad padre:hija 1:N.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_requester`; cardinalidad padre:hija 1:N.; Tabla hija `tb_orders` mediante `fk_user_2`; cardinalidad padre:hija 1:N.; Tabla hija `tb_people` mediante `fk_persons_users`; cardinalidad padre:hija 1:1.; Tabla hija `tb_refunds` mediante `fk_refunds_requester`; cardinalidad padre:hija 1:N.; Tabla hija `tb_returns` mediante `fk_returns_requester`; cardinalidad padre:hija 1:N.; Tabla hija `tb_seller_orders` mediante `tb_seller_orders_ibfk_1`; cardinalidad padre:hija 1:N.; Tabla hija `tb_user_addresses` mediante `fk_addresses_users`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_buyer_orders` mediante `tbd_buyer_orders_ibfk_1`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_products_users_providers` mediante `fk_user1`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_user_payment_methods` mediante `tbd_user_payment_methods_ibfk_1`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_users_wishlist_products` mediante `fk_user2`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_users_after_insert`, `trg_tb_users_after_insert`, `trg_users_after_update`, `trg_tb_users_after_update`, `trg_users_after_delete`, `trg_tb_users_after_delete`
 
 ### `tbc_categories`
@@ -405,13 +447,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 6 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 7 | `last_update` | `datetime` | NO | `No especificado` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `name` (`name`); INDEX `fk_superior_category` (`sup_id_category`); FK `fk_superior_category` (`sup_id_category`) → `tbc_categories` (`ID`); acción referencial por defecto MySQL
+**Restricciones/índices:** PK (`ID`); UNIQUE `name` (`name`); FK `fk_superior_category` (`sup_id_category`) → `tbc_categories` (`ID`); KEY `fk_superior_category` (`sup_id_category`)
 **Relaciones:** `fk_superior_category`: `tbc_categories` (sup_id_category) → `tbc_categories` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbc_categories` mediante `fk_superior_category`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_products_categories` mediante `fk_category`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tbc_categories_after_insert`, `trg_tbc_categories_after_update`, `trg_tbc_categories_after_delete`
 
 ### `tbc_payment_methods_types`
 
-- **Prefijo/tipo:** tbc_ (catálogo). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbc_ (catálogo). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 4.
 - **Propósito de negocio:** Catálogo de tipos de medio de pago vinculables a una cuenta. Centraliza las clases que referencian las asociaciones de pagos.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -429,7 +471,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tbd_address_components`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Desglosa partes de una dirección vinculadas al domicilio principal. Permite mantener y consultar por separado los componentes de ubicación.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -443,33 +485,34 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 7 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el componente de dirección, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el componente de dirección, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 8 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el componente de dirección, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el componente de dirección, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_address_component` (`address_ID`, `ID`); INDEX `idx_address_parent` (`address_ID`, `address_sup_ID`); FK `fk_component_address` (`address_ID`) → `tb_user_addresses` (`ID`); ON DELETE RESTRICT; FK `fk_component_parent` (`address_ID`, `address_sup_ID`) → `tbd_address_components` (`address_ID`, `ID`); ON DELETE RESTRICT
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_address_component` (`address_ID`, `ID`); FK `fk_component_address` (`address_ID`) → `tb_user_addresses` (`ID`) ON DELETE RESTRICT; FK `fk_component_parent` (`address_ID`, `address_sup_ID`) → `tbd_address_components` (`address_ID`, `ID`) ON DELETE RESTRICT; KEY `idx_address_parent` (`address_ID`, `address_sup_ID`)
 **Relaciones:** `fk_component_address`: `tbd_address_components` (address_ID) → `tb_user_addresses` (ID); cardinalidad 1:N padre:hija.; `fk_component_parent`: `tbd_address_components` (address_ID, address_sup_ID) → `tbd_address_components` (address_ID, ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_address_components` mediante `fk_component_parent`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tbd_address_components_after_insert`, `trg_tbd_address_components_after_update`, `trg_tbd_address_components_after_delete`
 
 ### `tbd_buyer_orders`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Orden por vendedor dentro de una compra: subtotal, costo de envío y estado de cumplimiento. Es la tabla de la que cuelgan envíos, devoluciones y cancelaciones.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
 |---:|---|---|:---:|---|---|---|---|---|
 | 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de buyer orders. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. |
-| 2 | `seller_ID` | `int` | NO | `No especificado` | — | FK | Usuario vendedor. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `seller_ID ∈ ℤ`. |
-| 3 | `subtotal` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Subtotal de la orden del vendedor; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `subtotal ∈ ℚ` (decimal(12,2)). |
-| 4 | `shipping_cost` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Costo de envío; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `shipping_cost ∈ ℚ` (decimal(12,2)). |
-| 5 | `fulfillment_status` | `enum ('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NO | `'Pending'` | — | Ninguna | Estado de cumplimiento de la orden del vendedor. Valores: Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `fulfillment_status ∈ {Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned}`. |
-| 6 | `status` | `bit (1)` | NO | `b'1'` | — | Ninguna | Indicador de estado operativo: 1 = activo, 0 = inactivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ {0, 1}`. |
-| 7 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
-| 8 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
+| 2 | `order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden de compra (tb_orders) a la que pertenece el registro. Referencia a `tb_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `order_ID ∈ ℤ⁺`. |
+| 3 | `seller_ID` | `int` | NO | `No especificado` | — | FK | Usuario vendedor. Referencia a `tb_users.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_users.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `seller_ID ∈ ℤ`. |
+| 4 | `subtotal` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Subtotal de la orden del vendedor; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `subtotal ∈ ℚ` (decimal(12,2)). |
+| 5 | `shipping_cost` | `decimal (12,2)` | NO | `'0.00'` | — | Ninguna | Costo de envío; el CHECK exige que no sea negativo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `shipping_cost ∈ ℚ` (decimal(12,2)). |
+| 6 | `fulfillment_status` | `enum ('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NO | `'Pending'` | — | Ninguna | Estado de cumplimiento de la orden del vendedor. Valores: Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `fulfillment_status ∈ {Pending, Accepted, Preparing, Sent, Delivered, Canceled, Returned}`. |
+| 7 | `status` | `bit (1)` | NO | `b'1'` | — | Ninguna | Indicador de estado operativo: 1 = activo, 0 = inactivo. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `status ∈ {0, 1}`. |
+| 8 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. |
+| 9 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de la última modificación del registro. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. |
 
-**Restricciones/índices:** PK (`ID`); FK `tbd_buyer_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tbd_buyer_orders_chk_1`: (`subtotal` >= 0); CHECK `tbd_buyer_orders_chk_2`: (`shipping_cost` >= 0); KEY `seller_ID` (`seller_ID`)
-**Relaciones:** `tbd_buyer_orders_ibfk_1`: `tbd_buyer_orders` (seller_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_returns` mediante `fk_returns_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_shipments` mediante `fk_shipments_buyer_order`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_buyer_orders_order_seller` (`order_ID`, `seller_ID`); FK `fk_buyer_orders_order` (`order_ID`) → `tb_orders` (`ID`); FK `tbd_buyer_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tbd_buyer_orders_chk_1`: (`subtotal` >= 0); CHECK `tbd_buyer_orders_chk_2`: (`shipping_cost` >= 0); KEY `seller_ID` (`seller_ID`)
+**Relaciones:** `fk_buyer_orders_order`: `tbd_buyer_orders` (order_ID) → `tb_orders` (ID); cardinalidad 1:N padre:hija.; `tbd_buyer_orders_ibfk_1`: `tbd_buyer_orders` (seller_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_order_cancellations` mediante `fk_cancellations_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_returns` mediante `fk_returns_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tb_shipments` mediante `fk_shipments_buyer_order`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_order_items` mediante `fk_order_items_buyer_order`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tbd_buyer_orders_after_insert`, `trg_tbd_buyer_orders_after_update`, `trg_tbd_buyer_orders_after_delete`
 
 ### `tbd_cancellation_items`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Detalle de los ítems de orden (y cantidad) incluidos en una cancelación parcial.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -486,7 +529,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tbd_cart_items`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Detalla productos y cantidades agregados a un carrito. Cada fila reúne un artículo bajo la cabecera del carrito antes de la compra.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -497,19 +540,19 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 4 | `quantity` | `int unsigned` | NO | `'1'` | — | Ninguna | Cantidad de unidades representadas en el renglón; escala, límites y reglas de inventario dependen del tipo y restricciones. En el contexto de el renglón del carrito, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa discreta. Composición formal: =. Dominio formal: `quantity ∈ ℤ⁺`. Cantidad de unidades representadas en el renglón; escala, límites y reglas de inventario dependen del tipo y restricciones. En el contexto de el renglón del carrito, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 5 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el renglón del carrito, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el renglón del carrito, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`cart_ID`, `provider_ID`, `product_ID`); INDEX `provider_ID` (`provider_ID`); INDEX `product_ID` (`product_ID`); FK `tbd_cart_items_ibfk_1` (`cart_ID`) → `tb_carts` (`ID`); acción referencial por defecto MySQL; FK `tbd_cart_items_ibfk_2` (`provider_ID`) → `tbd_products_users_providers` (`user_ID`); acción referencial por defecto MySQL; FK `tbd_cart_items_ibfk_3` (`product_ID`) → `tbd_products_users_providers` (`product_ID`); acción referencial por defecto MySQL; CHECK CONSTRAINT `chk_cart_quantity` CHECK ((`quantity` > 0))
-**Relaciones:** `tbd_cart_items_ibfk_1`: `tbd_cart_items` (cart_ID) → `tb_carts` (ID); cardinalidad 1:N padre:hija.; `tbd_cart_items_ibfk_2`: `tbd_cart_items` (provider_ID) → `tbd_products_users_providers` (user_ID); cardinalidad 1:N padre:hija.; `tbd_cart_items_ibfk_3`: `tbd_cart_items` (product_ID) → `tbd_products_users_providers` (product_ID); cardinalidad 1:N padre:hija.
-**Triggers asociados:** `trg_tbd_cart_items_after_insert`, `trg_tbd_cart_items_after_update`, `trg_tbd_cart_items_after_delete`
+**Restricciones/índices:** PK (`cart_ID`, `provider_ID`, `product_ID`); FK `fk_cart_items_provider_product` (`provider_ID`, `product_ID`) → `tbd_products_users_providers` (`user_ID`, `product_ID`); FK `tbd_cart_items_ibfk_1` (`cart_ID`) → `tb_carts` (`ID`); CHECK `chk_cart_quantity`: (`quantity` > 0); KEY `provider_ID` (`provider_ID`); KEY `product_ID` (`product_ID`); KEY `idx_cart_items_provider_product` (`provider_ID`, `product_ID`)
+**Relaciones:** `fk_cart_items_provider_product`: `tbd_cart_items` (provider_ID, product_ID) → `tbd_products_users_providers` (user_ID, product_ID); cardinalidad 1:N padre:hija.; `tbd_cart_items_ibfk_1`: `tbd_cart_items` (cart_ID) → `tb_carts` (ID); cardinalidad 1:N padre:hija.
+**Triggers asociados:** `trg_tbd_cart_items_before_insert`, `trg_tbd_cart_items_after_insert`, `trg_tbd_cart_items_after_update`, `trg_tbd_cart_items_after_delete`
 
 ### `tbd_order_items`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Desglosa los productos de una orden y los atributos de cantidad o precio almacenados. Representa los artículos que componen la transacción.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
 |---:|---|---|:---:|---|---|---|---|---|
 | 1 | `ID` | `int unsigned` | NO | `No especificado` | AUTO_INCREMENT | PK | Identificador interno de el renglón del pedido. Distingue el registro y sostiene las referencias definidas dentro del esquema. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: PK. Naturaleza: Cuantitativa discreta. Composición formal: @PK. Dominio formal: `ID ∈ ℤ⁺`. Identificador interno de el renglón del pedido. Distingue el registro y sostiene las referencias definidas dentro del esquema. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
-| 2 | `seller_order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Clave numérica de «seller order» dentro de el renglón del pedido; el destino queda garantizado solo si hay FOREIGN KEY explícita en el DDL. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tb_seller_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `seller_order_ID ∈ ℤ⁺`. Clave numérica de «seller order» dentro de el renglón del pedido; el destino queda garantizado solo si hay FOREIGN KEY explícita en el DDL. |
+| 2 | `buyer_order_ID` | `int unsigned` | NO | `No especificado` | — | FK | Orden por vendedor (tbd_buyer_orders) a la que pertenece. Referencia a `tbd_buyer_orders.ID`. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_buyer_orders.ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `buyer_order_ID ∈ ℤ⁺`. |
 | 3 | `product_ID` | `int unsigned` | NO | `No especificado` | — | FK | Identificador del producto al que corresponde esta fila; enlaza el detalle con el catálogo de productos. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_products_users_providers.product_ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `product_ID ∈ ℤ⁺`. Identificador del producto al que corresponde esta fila; enlaza el detalle con el catálogo de productos. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 4 | `provider_ID` | `int` | NO | `No especificado` | — | FK | Identificador de la cuenta proveedora relacionada con el producto. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: FK (tbd_products_users_providers.user_ID). Naturaleza: Cuantitativa discreta. Composición formal: #FK. Dominio formal: `provider_ID ∈ ℤ`. Identificador de la cuenta proveedora relacionada con el producto. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 5 | `product_name` | `varchar (255)` | NO | `No especificado` | — | Ninguna | Almacena «product name» en el contexto de el renglón del pedido. Tipo y restricciones constan en el DDL; regla funcional más específica: No especificado. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cualitativa nominal. Composición formal: =. Dominio formal: `product_name ∈ Cadena/valor binario según tipo`. Almacena «product name» en el contexto de el renglón del pedido. Tipo y restricciones constan en el DDL; regla funcional más específica: No especificado. |
@@ -518,13 +561,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 8 | `subtotal` | `decimal (12,2)` | SÍ | `No especificado` | GENERATED STORED | Ninguna | Columna generada y persistida por el motor mediante la expresión `(`quantity` * `unit_price`)`; representa el valor calculado del renglón según cantidad y precio unitario. | Valor: Monovalor. Origen: Derivado (fórmula `(`quantity` * `unit_price`)`). Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa continua. Composición formal: =. Dominio formal: `subtotal ∈ Decimal`. Columna generada y persistida por el motor mediante la expresión `(`quantity` * `unit_price`)`; representa el valor calculado del renglón según cantidad y precio unitario. |
 | 9 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el renglón del pedido, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); INDEX `seller_order_ID` (`seller_order_ID`); INDEX `product_ID` (`product_ID`); INDEX `provider_ID` (`provider_ID`); FK `tbd_order_items_ibfk_1` (`seller_order_ID`) → `tb_seller_orders` (`ID`); acción referencial por defecto MySQL; FK `tbd_order_items_ibfk_2` (`product_ID`) → `tbd_products_users_providers` (`product_ID`); acción referencial por defecto MySQL; FK `tbd_order_items_ibfk_3` (`provider_ID`) → `tbd_products_users_providers` (`user_ID`); acción referencial por defecto MySQL; CHECK CONSTRAINT `tbd_order_items_chk_1` CHECK ((`quantity` > 0)); CHECK CONSTRAINT `tbd_order_items_chk_2` CHECK ((`unit_price` >= 0))
-**Relaciones:** `tbd_order_items_ibfk_1`: `tbd_order_items` (seller_order_ID) → `tb_seller_orders` (ID); cardinalidad 1:N padre:hija.; `tbd_order_items_ibfk_2`: `tbd_order_items` (product_ID) → `tbd_products_users_providers` (product_ID); cardinalidad 1:N padre:hija.; `tbd_order_items_ibfk_3`: `tbd_order_items` (provider_ID) → `tbd_products_users_providers` (user_ID); cardinalidad 1:N padre:hija.
+**Restricciones/índices:** PK (`ID`); FK `fk_order_items_buyer_order` (`buyer_order_ID`) → `tbd_buyer_orders` (`ID`); FK `fk_order_items_provider_product` (`provider_ID`, `product_ID`) → `tbd_products_users_providers` (`user_ID`, `product_ID`); CHECK `tbd_order_items_chk_1`: (`quantity` > 0); CHECK `tbd_order_items_chk_2`: (`unit_price` >= 0); KEY `idx_order_items_buyer_order` (`buyer_order_ID`); KEY `product_ID` (`product_ID`); KEY `provider_ID` (`provider_ID`); KEY `idx_order_items_provider_product` (`provider_ID`, `product_ID`)
+**Relaciones:** `fk_order_items_buyer_order`: `tbd_order_items` (buyer_order_ID) → `tbd_buyer_orders` (ID); cardinalidad 1:N padre:hija.; `fk_order_items_provider_product`: `tbd_order_items` (provider_ID, product_ID) → `tbd_products_users_providers` (user_ID, product_ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_cancellation_items` mediante `fk_cancellation_items_order_item`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_return_items` mediante `fk_return_items_order_item`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tbd_order_items_after_insert`, `trg_tbd_order_items_after_update`, `trg_tbd_order_items_after_delete`
 
 ### `tbd_products_categories`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 23020.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 23 020.
 - **Propósito de negocio:** Asocia productos con categorías y permite modelar clasificación de varios productos en categorías. Conserva identificadores de los dos lados de la relación.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -535,13 +578,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 4 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la asignación producto-categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la asignación producto-categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 5 | `last_update` | `datetime` | NO | `No especificado` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la asignación producto-categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la asignación producto-categoría, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`category_ID`, `product_ID`); INDEX `fk_product` (`product_ID`); FK `fk_category` (`category_ID`) → `tbc_categories` (`ID`); acción referencial por defecto MySQL; FK `fk_product` (`product_ID`) → `tb_products` (`id`); acción referencial por defecto MySQL
+**Restricciones/índices:** PK (`category_ID`, `product_ID`); FK `fk_category` (`category_ID`) → `tbc_categories` (`ID`); FK `fk_product` (`product_ID`) → `tb_products` (`id`); KEY `fk_product` (`product_ID`)
 **Relaciones:** `fk_category`: `tbd_products_categories` (category_ID) → `tbc_categories` (ID); cardinalidad 1:N padre:hija.; `fk_product`: `tbd_products_categories` (product_ID) → `tb_products` (id); cardinalidad 1:N padre:hija.
 **Triggers asociados:** `trg_tbd_products_categories_after_insert`, `trg_tbd_products_categories_after_update`, `trg_tbd_products_categories_after_delete`
 
 ### `tbd_products_users_providers`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 15 007.
 - **Propósito de negocio:** Relaciona productos con cuentas proveedoras según los identificadores del esquema. Permite registrar la participación del proveedor en cada producto.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -554,13 +597,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 6 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la relación producto-proveedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de la relación producto-proveedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 7 | `last_update` | `datetime` | NO | `CURRENT_TIMESTAMP` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la relación producto-proveedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de la relación producto-proveedor, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`user_ID`, `product_ID`); INDEX `fk_products2` (`product_ID`); FK `fk_products2` (`product_ID`) → `tb_products` (`id`); acción referencial por defecto MySQL; FK `fk_user1` (`user_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL
-**Relaciones:** `fk_products2`: `tbd_products_users_providers` (product_ID) → `tb_products` (id); cardinalidad 1:N padre:hija.; `fk_user1`: `tbd_products_users_providers` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_2`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_3`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_2`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_3`; cardinalidad padre:hija 1:N.
+**Restricciones/índices:** PK (`user_ID`, `product_ID`); FK `fk_products2` (`product_ID`) → `tb_products` (`id`); FK `fk_user1` (`user_ID`) → `tb_users` (`ID`); KEY `fk_products2` (`product_ID`)
+**Relaciones:** `fk_products2`: `tbd_products_users_providers` (product_ID) → `tb_products` (id); cardinalidad 1:N padre:hija.; `fk_user1`: `tbd_products_users_providers` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tbd_cart_items` mediante `fk_cart_items_provider_product`; cardinalidad padre:hija 1:N.; Tabla hija `tbd_order_items` mediante `fk_order_items_provider_product`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_products_users_providers_after_insert`, `trg_products_users_providers_after_update`, `trg_products_users_providers_after_delete`
 
 ### `tbd_return_items`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Detalle de los ítems de orden devueltos: cantidad, condición, destino del artículo y monto aprobado a reembolsar.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -582,7 +625,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 ### `tbd_user_payment_methods`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Asocia cuentas con tipos o datos de medios de pago. Mantiene el vínculo requerido para seleccionar un medio asociado al usuario.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -599,13 +642,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 10 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el medio de pago de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el medio de pago de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 11 | `last_update` | `datetime` | SÍ | `NULL` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el medio de pago de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Opcional. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el medio de pago de usuario, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_provider_method` (`provider`, `provider_method_ref`); INDEX `user_ID` (`user_ID`); INDEX `payment_method_type_ID` (`payment_method_type_ID`); FK `tbd_user_payment_methods_ibfk_1` (`user_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL; FK `tbd_user_payment_methods_ibfk_2` (`payment_method_type_ID`) → `tbc_payment_methods_types` (`ID`); acción referencial por defecto MySQL
-**Relaciones:** `tbd_user_payment_methods_ibfk_1`: `tbd_user_payment_methods` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; `tbd_user_payment_methods_ibfk_2`: `tbd_user_payment_methods` (payment_method_type_ID) → `tbc_payment_methods_types` (ID); cardinalidad 1:N padre:hija.
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_provider_method` (`provider`, `provider_method_ref`); FK `tbd_user_payment_methods_ibfk_1` (`user_ID`) → `tb_users` (`ID`); FK `tbd_user_payment_methods_ibfk_2` (`payment_method_type_ID`) → `tbc_payment_methods_types` (`ID`); CHECK `chk_user_pm_last_four`: ((`last_four` is null) or regexp_like(`last_four`,_utf8mb4'^[0-9]{4}$')); KEY `user_ID` (`user_ID`); KEY `payment_method_type_ID` (`payment_method_type_ID`)
+**Relaciones:** `tbd_user_payment_methods_ibfk_1`: `tbd_user_payment_methods` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.; `tbd_user_payment_methods_ibfk_2`: `tbd_user_payment_methods` (payment_method_type_ID) → `tbc_payment_methods_types` (ID); cardinalidad 1:N padre:hija.; Tabla hija `tb_payments` mediante `fk_payment_user_method`; cardinalidad padre:hija 1:N.
 **Triggers asociados:** `trg_tbd_user_payment_methods_after_insert`, `trg_tbd_user_payment_methods_after_update`, `trg_tbd_user_payment_methods_after_delete`
 
 ### `tbd_users_wishlist_products`
 
-- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** No indicado; no verificable desde DDL.
+- **Prefijo/tipo:** tbd_ (detalle). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
 - **Propósito de negocio:** Asocia usuarios con productos guardados como elementos de interés. Permite consultar los productos preferidos de cada cuenta.
 
 | # | Columna | Tipo / precisión | NULL | Default | Extras | Tipo de llave | Descripción individual | Clasificación ampliada |
@@ -616,7 +659,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | 4 | `creation_date` | `datetime` | NO | `CURRENT_TIMESTAMP` | — | Ninguna | Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el producto guardado en lista de deseos, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `creation_date ∈ FechaHora`. Fecha y hora de creación del registro; el DDL puede asignarla automáticamente mediante DEFAULT CURRENT_TIMESTAMP. En el contexto de el producto guardado en lista de deseos, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 | 5 | `last_update` | `datetime` | NO | `No especificado` | ON UPDATE CURRENT_TIMESTAMP | Ninguna | Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el producto guardado en lista de deseos, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. | Valor: Monovalor. Origen: Almacenado. Obligatoriedad: Obligatorio. Llave: No. Naturaleza: Cuantitativa temporal. Composición formal: =. Dominio formal: `last_update ∈ FechaHora`. Marca temporal de modificación; cuando el DDL incluye ON UPDATE CURRENT_TIMESTAMP, el motor la renueva al actualizar la fila. En el contexto de el producto guardado en lista de deseos, el dato mantiene su función propia sin confundirse con campos homónimos de otras entidades. |
 
-**Restricciones/índices:** PK (`user_ID`, `product_ID`); INDEX `fk_products3` (`product_ID`); FK `fk_products3` (`product_ID`) → `tb_products` (`id`); acción referencial por defecto MySQL; FK `fk_user2` (`user_ID`) → `tb_users` (`ID`); acción referencial por defecto MySQL
+**Restricciones/índices:** PK (`user_ID`, `product_ID`); FK `fk_products3` (`product_ID`) → `tb_products` (`id`); FK `fk_user2` (`user_ID`) → `tb_users` (`ID`); KEY `fk_products3` (`product_ID`)
 **Relaciones:** `fk_products3`: `tbd_users_wishlist_products` (product_ID) → `tb_products` (id); cardinalidad 1:N padre:hija.; `fk_user2`: `tbd_users_wishlist_products` (user_ID) → `tb_users` (ID); cardinalidad 1:N padre:hija.
 **Triggers asociados:** `trg_tbd_users_wishlist_products_after_insert`, `trg_tbd_users_wishlist_products_after_update`, `trg_tbd_users_wishlist_products_after_delete`
 
@@ -627,6 +670,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 - `tb_users` ↔ `tb_products` mediante `tbd_users_wishlist_products` (PK compuesta `user_ID`, `product_ID`).
 - `tb_users` ↔ `tbc_payment_methods_types` mediante `tbd_user_payment_methods`; el ID propio permite múltiples filas y el DDL no declara unicidad por par.
 - `tb_orders` ↔ `tb_payment_methods` mediante `tb_payments` (una orden puede tener varios pagos y un método de pago aplica a varios pagos).
+- `tb_orders` ↔ `tb_users` (vendedores) mediante `tbd_buyer_orders` (una orden de compra se divide en una orden por vendedor; UNIQUE `order_ID`, `seller_ID`).
 - `tbd_order_items` ↔ `tb_order_cancellations` mediante `tbd_cancellation_items` (cancelaciones parciales por ítem; UNIQUE `cancellation_ID`, `order_item_ID`).
 - `tbd_order_items` ↔ `tb_returns` mediante `tbd_return_items` (devoluciones por ítem; UNIQUE `return_ID`, `order_item_ID`).
 
@@ -636,13 +680,13 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 |---|---|---|---|
 | `vw_total_products_by_category1` | Cuenta productos por categoría, jerarquía y estado. | `tb_products`, `tbc_categories`, `tbd_products_categories` | `category_ID` ← tbc_categories.ID / jerarquía recursiva, `category_path` ← concatenación jerárquica de tbc_categories.name, `category_level` ← profundidad calculada en la jerarquía de categorías, `total_products` ← conteo agregado de relaciones producto-categoría, `total_active_products` ← conteo agregado de productos con status activo, `total_inactive_products` ← conteo agregado de productos con status inactivo, `total_uncategorized_products` ← conteo agregado de productos sin categoría |
 | `vw_total_products_by_category` | Cuenta productos por categoría, jerarquía y estado. | `tbc_categories`, `tbd_products_categories` | `category_ID` ← tbc_categories.ID / jerarquía recursiva, `category_path` ← concatenación jerárquica de tbc_categories.name, `category_level` ← profundidad calculada en la jerarquía de categorías, `total_products` ← conteo agregado de relaciones producto-categoría, `total_active_products` ← conteo agregado de productos con status activo, `total_inactive_products` ← conteo agregado de productos con status inactivo, `total_uncategorized_products` ← conteo agregado de productos sin categoría |
+| `vw_available_products` | Productos disponibles para comprar: producto activo, proveedor activo y existencias mayores a cero (paso 1 del flujo de compra). | `tb_products`, `tbd_products_users_providers` | `product_ID` ← tb_products.id, `sku` ← tb_products.sku, `name` ← tb_products.name, `current_price` ← tb_products.current_price, `current_stock` ← tb_products.current_stock, `provider_ID` ← tbd_products_users_providers.user_ID, `type_ownership` ← tbd_products_users_providers.type_ownership |
 | `vw_trazabilidad_address_components` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_buyer_orders` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_cancellation_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_cart_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_carts` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_categorias` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
-| `vw_trazabilidad_logs` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_order_cancellations` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_order_items` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
 | `vw_trazabilidad_orders` | Consulta trazable de registros de auditoría de la entidad indicada por el nombre de la vista. | `tb_logs` | `ID` ← tb_logs.ID, `table_name` ← tb_logs.table_name, `operation` ← tb_logs.operation, `db_user` ← tb_logs.db_user, `description` ← tb_logs.description, `operation_date` ← tb_logs.operation_date, `operation_status` ← tb_logs.operation_status |
@@ -734,6 +778,7 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | `trg_tbd_cart_items_after_insert` | `tbd_cart_items` | INSERT | AFTER | tbd_cart_items; Create; Ítem agregado al carrito. cart_ID=; campos: `cart_ID`, `product_ID`, `provider_ID`, `quantity` |
 | `trg_tbd_cart_items_after_update` | `tbd_cart_items` | UPDATE | AFTER | tbd_cart_items; Update; Ítem de carrito actualizado. cart_ID=; campos: `cart_ID`, `product_ID`, `provider_ID`, `quantity` |
 | `trg_tbd_cart_items_after_delete` | `tbd_cart_items` | DELETE | AFTER | tbd_cart_items; Delete; Ítem de carrito eliminado. cart_ID=; campos: `cart_ID`, `product_ID`, `provider_ID` |
+| `trg_tbd_cart_items_before_insert` | `tbd_cart_items` | INSERT | BEFORE | Sin auditoría: valida que el carrito esté activo y que el producto esté disponible con existencias suficientes; si no, lanza el error 45000. |
 | `trg_tbd_order_items_after_insert` | `tbd_order_items` | INSERT | AFTER | tbd_order_items; Create; Registro creado en tbd_order_items; campos: según cuerpo |
 | `trg_tbd_order_items_after_update` | `tbd_order_items` | UPDATE | AFTER | tbd_order_items; Update; Registro actualizado en tbd_order_items; campos: según cuerpo |
 | `trg_tbd_order_items_after_delete` | `tbd_order_items` | DELETE | AFTER | tbd_order_items; Delete; Registro eliminado en tbd_order_items; campos: según cuerpo |
@@ -754,6 +799,96 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 | `trg_tbd_users_wishlist_products_after_delete` | `tbd_users_wishlist_products` | DELETE | AFTER | tbd_users_wishlist_products; Delete; Registro eliminado en tbd_users_wishlist_products; campos: según cuerpo |
 
 ## Procedimientos almacenados
+
+### `sp_authorize_payment`
+
+**Parámetros:** `IN p_payment_id INT UNSIGNED`
+
+**Lógica:** Paso 8 (sistema). Con el pago en Pending registra en `tb_payment_transaction` una Authorization y una Capture (Succeeded), marca el pago como Paid con su fecha y la orden como Payed.
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_payment_transaction`, `tb_payments`
+
+**Ejemplo:** `CALL sp_authorize_payment(/* p_payment_id */);`
+
+### `sp_bulk_insert_full_users`
+
+**Parámetros:** `IN p_total INT`
+
+**Lógica:** Versión antigua de carga masiva de usuarios y personas. Inserta en `tb_persons`, tabla que no existe (la actual es `tb_people`).
+
+**Tablas consultadas/modificadas:** `tb_persons`, `tb_users`
+
+**Ejemplo:** `CALL sp_bulk_insert_full_users(/* p_total */);`
+
+### `sp_bulk_insert_persons`
+
+**Parámetros:** `IN p_total INT`; `IN p_start_user_id INT`
+
+**Lógica:** Versión antigua de carga masiva de personas a partir de un ID de usuario inicial. Inserta en `tb_persons`, tabla que no existe (la actual es `tb_people`).
+
+**Tablas consultadas/modificadas:** `tb_persons`
+
+**Ejemplo:** `CALL sp_bulk_insert_persons(/* p_total */, /* p_start_user_id */);`
+
+### `sp_bulk_insert_users`
+
+**Parámetros:** `IN p_total INT`
+
+**Lógica:** Versión antigua de carga masiva de usuarios (`user_<n>_<aleatorio>@utxicotepec.edu.mx`, nick `ING-USER-<n>`). Inserta una columna `nationality` que ya no existe en `tb_users`, por lo que falla.
+
+**Tablas consultadas/modificadas:** `tb_users`
+
+**Ejemplo:** `CALL sp_bulk_insert_users(/* p_total */);`
+
+### `sp_create_order_from_cart`
+
+**Parámetros:** `IN p_user_id INT`; `OUT p_order_id INT UNSIGNED`
+
+**Lógica:** Paso 4 del flujo de compra. Valida que el usuario tenga un carrito activo con ítems y que cada producto esté activo, con proveedor activo y existencias suficientes. En una transacción crea la orden en `tb_orders`, una orden por vendedor en `tbd_buyer_orders`, los renglones en `tbd_order_items`, descuenta `tb_products.current_stock` y cierra el carrito (`status` = 0).
+
+**Tablas consultadas/modificadas:** `tb_carts`, `tb_orders`, `tb_products`, `tbd_buyer_orders`, `tbd_cart_items`, `tbd_order_items`, `tbd_products_users_providers`
+
+**Ejemplo:** `CALL sp_create_order_from_cart(/* p_user_id */, /* p_order_id */);`
+
+### `sp_deliver_order`
+
+**Parámetros:** `IN p_order_id INT UNSIGNED`
+
+**Lógica:** Paso 10 (sistema). Con la orden en Attended marca los envíos como Delivered con fecha de entrega, las órdenes de vendedor como Delivered y la orden como Delivered.
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_shipments`, `tbd_buyer_orders`
+
+**Ejemplo:** `CALL sp_deliver_order(/* p_order_id */);`
+
+### `sp_generate_bulk_users`
+
+**Parámetros:** `IN p_total INT`; `IN p_forced_country VARCHAR(5)`; `IN p_min_age INT`; `IN p_max_age INT`; `IN p_active_ratio INT`
+
+**Lógica:** Carga masiva de cuentas y perfiles. Recibe cantidad total, país forzado (opcional), edad mínima y máxima (18 y 65 por defecto) y porcentaje de usuarios activos. Por cada iteración arma un correo `bulk_<marca de tiempo>_<n>_<aleatorio>@utxicotepec.edu.mx`, un nick `USER-<marca>-<n>`, una contraseña SHA2 de 256 bits, un país (aleatorio entre MX, US, CO, PE, AR y CL), teléfono y fecha de nacimiento según el país, inserta en `tb_users` y luego en `tb_people` con el ID generado. Desactiva FOREIGN_KEY_CHECKS y UNIQUE_CHECKS durante el proceso y los restablece al terminar.
+
+**Tablas consultadas/modificadas:** `tb_people`, `tb_users`
+
+**Ejemplo:** `CALL sp_generate_bulk_users(/* p_total */, /* p_forced_country */, /* p_min_age */, /* p_max_age */, /* p_active_ratio */);`
+
+### `sp_process_order`
+
+**Parámetros:** `IN p_order_id INT UNSIGNED`
+
+**Lógica:** Paso 9 (sistema). Con la orden en Payed toma el domicilio activo (predeterminado primero), genera un envío por orden de vendedor en `tb_shipments` (InTransit), marca las órdenes de vendedor como Sent y la orden como Attended.
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_shipments`, `tb_user_addresses`, `tbd_address_components`, `tbd_buyer_orders`
+
+**Ejemplo:** `CALL sp_process_order(/* p_order_id */);`
+
+### `sp_register_payment`
+
+**Parámetros:** `IN p_order_id INT UNSIGNED`; `IN p_user_payment_method_id BIGINT UNSIGNED`; `OUT p_payment_id INT UNSIGNED`
+
+**Lógica:** Paso 7. Valida que la orden esté en estado Registered, que el método de pago pertenezca al comprador y esté activo, y que la orden no tenga otro pago vigente; inserta un pago Pending en `tb_payments` por el total de la orden, en MXN.
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_payment_methods`, `tb_payments`, `tbc_payment_methods_types`, `tbd_user_payment_methods`
+
+**Ejemplo:** `CALL sp_register_payment(/* p_order_id */, /* p_user_payment_method_id */, /* p_payment_id */);`
 
 ### `sp_register_user_with_person`
 
@@ -783,6 +918,26 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 **Ejemplo:** `CALL sp_restore_product(/* p_product_id */);`
 
+### `sp_simulate_single_user`
+
+**Parámetros:** `OUT p_created_user_id INT UNSIGNED`
+
+**Lógica:** Genera un nick y un correo únicos a partir de un hash aleatorio, elige género, país, título de cortesía, nombre, apellido, fecha de nacimiento y teléfono simulados con las funciones fn_simulate_*, inserta la cuenta en tb_users y su perfil en tb_people, y devuelve el ID creado por el parámetro OUT.
+
+**Tablas consultadas/modificadas:** `tb_people`, `tb_users`
+
+**Ejemplo:** `CALL sp_simulate_single_user(/* p_created_user_id */);`
+
+### `sp_simulate_users_bulk`
+
+**Parámetros:** `IN p_quantity INT UNSIGNED`; `IN p_batch_size INT UNSIGNED`
+
+**Lógica:** Recibe una cantidad y un tamaño de bloque (500 por defecto si es NULL o 0), abre una transacción y llama en ciclo a sp_simulate_single_user; confirma parcialmente cada bloque para liberar memoria e índices y confirma al final.
+
+**Tablas consultadas/modificadas:** Ninguna directamente
+
+**Ejemplo:** `CALL sp_simulate_users_bulk(/* p_quantity */, /* p_batch_size */);`
+
 ### `sp_soft_delete_product`
 
 **Parámetros:** `IN p_product_id INT UNSIGNED`
@@ -811,30 +966,12 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 
 **Ejemplo:** `CALL sp_soft_delete_user(/* p_user_id */);`
 
-### `sp_simulate_single_user`
-
-**Parámetros:** `OUT p_created_user_id INT UNSIGNED`
-
-**Lógica:** Genera un nick y un correo únicos a partir de un hash aleatorio, elige género, país, título de cortesía, nombre, apellido, fecha de nacimiento y teléfono simulados con las funciones fn_simulate_*, inserta la cuenta en tb_users y su perfil en tb_people, y devuelve el ID creado por el parámetro OUT.
-
-**Tablas consultadas/modificadas:** `tb_people`, `tb_users`
-
-**Ejemplo:** `CALL sp_simulate_single_user(/* p_created_user_id */);`
-
-### `sp_simulate_users_bulk`
-
-**Parámetros:** `IN p_quantity INT UNSIGNED`; `IN p_batch_size INT UNSIGNED`
-
-**Lógica:** Recibe una cantidad y un tamaño de bloque (500 por defecto si es NULL o 0), abre una transacción y llama en ciclo a sp_simulate_single_user; confirma parcialmente cada bloque para liberar memoria e índices y confirma al final.
-
-**Tablas consultadas/modificadas:** Ninguna directamente (invoca `sp_simulate_single_user`)
-
-**Ejemplo:** `CALL sp_simulate_users_bulk(/* p_quantity */, /* p_batch_size */);`
-
 ## Funciones almacenadas
 
 | Función | Parámetros | Retorna | Descripción | Tablas consultadas |
 |---|---|---|---|---|
+| `fn_get_phone_by_country` | `p_country_code VARCHAR(5` | `` | Devuelve un teléfono simulado con la lada del país recibido (US, MX, CO, PE, AR; otro valor genera una lada aleatoria). | — |
+| `fn_get_random_birth_date` | `p_min_age INT, p_max_age INT` | `date` | Devuelve una fecha de nacimiento aleatoria para una persona con edad entre los años mínimo y máximo recibidos (18 y 65 por defecto). | — |
 | `fn_simulate_birthdate` | — | `date` | Devuelve una fecha de nacimiento simulada. | — |
 | `fn_simulate_country_code` | — | `char(2)` | Devuelve un código de país de dos letras tomado de tbc_countries. | `tbc_countries` |
 | `fn_simulate_courtesy_title_id` | `p_gender_id TINYINT UNSIGNED` | `tinyint` | Devuelve el ID de un título de cortesía acorde al género recibido, consultando tbc_gender_options y tbc_courtesy_titles. | `tbc_courtesy_titles`, `tbc_gender_options` |
@@ -887,26 +1024,25 @@ Cada columna presenta clasificación ampliada. «No especificado» señala infor
 - **Baja:** No se detectaron diferencias de tipo en pares FK explícitos. Recomendación: Mantener validación de tipos en migraciones.
 - **Alta:** `sp_register_user_with_person` transforma la contraseña con MD5 antes de guardarla en `tb_users.password`; MD5 es una función rápida y no adecuada para almacenamiento de contraseñas. Recomendación: Migrar a una función de derivación de claves para contraseñas con sal y costo configurable (por ejemplo Argon2id, bcrypt o scrypt), aplicada en una ruta compatible con la autenticación existente.
 - **Media:** `tb_products` y `tb_users` tienen dos triggers de auditoría para cada evento INSERT, UPDATE y DELETE (uno con prefijo corto y otro `trg_tb_*`); ambos insertan en `tb_logs` y pueden duplicar el historial. Recomendación: Consolidar cada evento en un trigger o confirmar que las dos entradas responden a requisitos distintos y documentar su diferencia.
-- **Media:** `tbd_cart_items` referencia por separado `provider_ID` y `product_ID` a la tabla de asociaciones producto-proveedor; las dos FK independientes no garantizan que ambas claves pertenezcan al mismo vínculo. Recomendación: Si cada renglón debe corresponder a una asociación proveedor-producto válida, reemplazar las FK separadas por una FK compuesta sobre ambas columnas.
-- **Media:** `tbd_order_items` referencia por separado `provider_ID` y `product_ID` a la tabla de asociaciones producto-proveedor; las dos FK independientes no garantizan que ambas claves pertenezcan al mismo vínculo. Recomendación: Si cada renglón debe corresponder a una asociación proveedor-producto válida, reemplazar las FK separadas por una FK compuesta sobre ambas columnas.
-- **Media:** `fn_simulate_country_code`, `fn_simulate_courtesy_title_id` y `fn_simulate_gender_id` consultan `tbc_countries`, `tbc_gender_options` y `tbc_courtesy_titles`, que no existen en este respaldo. Recomendación: Incluir esas tablas catálogo en el esquema o los procedimientos `sp_simulate_*` fallarán al ejecutarse.
-- **Media:** `tbd_buyer_orders` y `tb_seller_orders` tienen estructura casi idéntica (`seller_ID`, `fulfillment_status`, `status`), pero `tbd_order_items` sigue apuntando a `tb_seller_orders` mientras `tb_shipments`, `tb_returns` y `tb_order_cancellations` apuntan a `tbd_buyer_orders`. Recomendación: Confirmar si `tbd_buyer_orders` reemplaza a `tb_seller_orders` y unificar las referencias.
-- **Media:** `tb_orders` no está relacionada con `tb_seller_orders` ni con `tbd_buyer_orders`; solo `tb_payments` y `tb_order_cancellations` la referencian. Recomendación: Definir la relación orden–orden de vendedor para conservar la trazabilidad completa de la compra.
-- **Baja:** `tb_orders.total_cost` usa `decimal(10,3)` mientras los demás importes usan `decimal(10,2)` o `decimal(12,2)`. Recomendación: Unificar escala y precisión de importes.
+- **Alta:** `sp_bulk_insert_users`, `sp_bulk_insert_persons` y `sp_bulk_insert_full_users` están rotos: insertan la columna inexistente `tb_users.nationality` o la tabla inexistente `tb_persons` (la actual es `tb_people`). Recomendación: Eliminarlos o actualizarlos; la carga masiva vigente es `sp_generate_bulk_users`.
+- **Alta:** `tbd_user_payment_methods.provider_method_ref` guarda el número simulado de 16 dígitos completo. Recomendación: En producción almacenar solo un token del proveedor de pagos y los últimos cuatro dígitos (`last_four`).
+- **Media:** Las funciones `fn_simulate_country_code`, `fn_simulate_courtesy_title_id` y `fn_simulate_gender_id` consultan `tbc_countries`, `tbc_gender_options` y `tbc_courtesy_titles`, que no existen en este respaldo. Recomendación: Incluir esas tablas catálogo o los procedimientos `sp_simulate_*` fallarán al ejecutarse.
+- **Media:** `tb_seller_orders` quedó sin uso (0 registros): la orden por vendedor vigente es `tbd_buyer_orders`, de la que cuelgan ítems, envíos, devoluciones y cancelaciones. Recomendación: Eliminar `tb_seller_orders` o documentar su reemplazo.
+- **Baja:** `tb_carts` permite un solo carrito activo por usuario mediante la columna generada `active_user_ID` (UNIQUE); los carritos cerrados (`status` = 0) se conservan como historial. Recomendación: Ninguna; es el comportamiento esperado del flujo de compra.
 - **Baja:** `tb_orders.status_string` usa etiquetas con ortografía irregular (`Payed`, `Sended`, `Devolved`). Recomendación: Normalizar a `Paid`, `Sent`, `Returned` si no hay dependencias.
-- **Baja:** Las tablas nuevas de pagos, envíos, devoluciones y cancelaciones registran auditoría con un trigger de una sola sentencia que escribe solo el ID en `tb_logs`. Recomendación: Ampliar el detalle auditado si se requiere conocer qué campo cambió.
+- **Baja:** Las tablas de pagos, envíos, devoluciones y cancelaciones registran auditoría con un trigger de una sola sentencia que escribe solo el ID en `tb_logs`. Recomendación: Ampliar el detalle auditado si se requiere saber qué campo cambió.
 
 ## Pendientes por confirmar
 
 - Confirmar versión de referencia: el requerimiento indica 8.0.36 y el encabezado del dump 8.0.42.
-- Los conteos de registros se transcribieron de la solicitud; requieren validación en el servidor.
+- Los conteos de registros provienen de restaurar `Respaldo 28-10-26 .sql` en MySQL 8.0.42; si el servidor cambia, deben recalcularse.
 - Significado de etiquetas ENUM y códigos numéricos sin catálogo o comentario explícito.
 - Moneda, unidades de medida, zona horaria, fórmulas y validaciones de formato no expresadas en DDL.
 - Semántica funcional de banderas cuando no está documentada en comentarios ni constraints.
 
 ## Diagrama entidad-relación
 
-Modelo generado desde las 42 llaves foráneas de `Respaldo 28-10-26.sql` (las cardinalidades 1:1 corresponden a columnas FK con PK o UNIQUE). Cada entidad muestra solo sus llaves; el detalle de columnas está en la sección de tablas. El mismo diagrama está en [diagrama_er.mmd](diagrama_er.mmd).
+Modelo generado desde las 42 llaves foráneas de `Respaldo 28-10-26 .sql` (las cardinalidades 1:1 corresponden a columnas FK con PK o UNIQUE). Cada entidad muestra solo sus llaves; el detalle de columnas está en la sección de tablas. El mismo diagrama está en [diagrama_er.mmd](diagrama_er.mmd) y se muestra renderizado en la página web del diccionario.
 
 ```mermaid
 erDiagram
@@ -915,6 +1051,7 @@ erDiagram
     tb_order_cancellations ||--o{ tbd_cancellation_items : "cancellation_ID"
     tb_orders ||--o{ tb_order_cancellations : "order_ID"
     tb_orders ||--o{ tb_payments : "order_ID"
+    tb_orders ||--o{ tbd_buyer_orders : "order_ID"
     tb_payment_methods ||--o{ tb_payments : "payment_method_ID"
     tb_payments ||--o{ tb_payment_transaction : "payment_ID"
     tb_payments ||--o{ tb_refunds : "payment_ID"
@@ -924,9 +1061,9 @@ erDiagram
     tb_refunds ||--o{ tb_payment_transaction : "refund_ID, payment_ID"
     tb_returns ||--o{ tb_refunds : "return_ID"
     tb_returns ||--o{ tbd_return_items : "return_ID"
-    tb_seller_orders ||--o{ tbd_order_items : "seller_order_ID"
     tb_user_addresses ||--o{ tb_shipments : "address_ID"
     tb_user_addresses ||--o{ tbd_address_components : "address_ID"
+    tb_users ||--o{ tb_carts : "user_ID"
     tb_users ||--o{ tb_order_cancellations : "requested_by_user_ID"
     tb_users ||--o{ tb_orders : "User_ID"
     tb_users ||--o{ tb_refunds : "requested_by_user_ID"
@@ -937,7 +1074,6 @@ erDiagram
     tb_users ||--o{ tbd_products_users_providers : "user_ID"
     tb_users ||--o{ tbd_user_payment_methods : "user_ID"
     tb_users ||--o{ tbd_users_wishlist_products : "user_ID"
-    tb_users ||--|| tb_carts : "user_ID"
     tb_users ||--|| tb_people : "user_ID"
     tbc_categories ||--o{ tbc_categories : "sup_id_category"
     tbc_categories ||--o{ tbd_products_categories : "category_ID"
@@ -946,12 +1082,12 @@ erDiagram
     tbd_buyer_orders ||--o{ tb_order_cancellations : "buyer_order_ID"
     tbd_buyer_orders ||--o{ tb_returns : "buyer_order_ID"
     tbd_buyer_orders ||--o{ tb_shipments : "buyer_order_ID"
+    tbd_buyer_orders ||--o{ tbd_order_items : "buyer_order_ID"
     tbd_order_items ||--o{ tbd_cancellation_items : "order_item_ID"
     tbd_order_items ||--o{ tbd_return_items : "order_item_ID"
-    tbd_products_users_providers ||--o{ tbd_cart_items : "product_ID"
-    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID"
-    tbd_products_users_providers ||--o{ tbd_order_items : "product_ID"
-    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID"
+    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID, product_ID"
+    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID, product_ID"
+    tbd_user_payment_methods ||--o{ tb_payments : "user_payment_method_ID"
 
     tb_carts {
         int_unsigned ID PK
@@ -982,6 +1118,7 @@ erDiagram
         int_unsigned ID PK
         int_unsigned order_ID FK
         int_unsigned payment_method_ID FK
+        bigint_unsigned user_payment_method_ID FK
     }
     tb_people {
         bigint_unsigned person_ID PK
@@ -1032,6 +1169,7 @@ erDiagram
     }
     tbd_buyer_orders {
         int_unsigned ID PK
+        int_unsigned order_ID FK
         int seller_ID FK
     }
     tbd_cancellation_items {
@@ -1046,7 +1184,7 @@ erDiagram
     }
     tbd_order_items {
         int_unsigned ID PK
-        int_unsigned seller_order_ID FK
+        int_unsigned buyer_order_ID FK
         int_unsigned product_ID FK
         int provider_ID FK
     }

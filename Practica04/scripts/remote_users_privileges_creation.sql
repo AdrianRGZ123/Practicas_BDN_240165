@@ -62,52 +62,91 @@ GRANT EXECUTE ON db_test.* TO 'support';
    SELLER
    ------------------------- */
 GRANT SELECT, INSERT, UPDATE ON db_test.tb_products TO 'seller';
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_seller_orders TO 'seller';
+GRANT SELECT, INSERT, UPDATE ON db_test.tbd_buyer_orders TO 'seller';
 GRANT SELECT, INSERT, UPDATE ON db_test.tbd_order_items TO 'seller';
 GRANT SELECT, INSERT, UPDATE ON db_test.tbd_products_users_providers TO 'seller';
 
 /* -------------------------
    USER NOT REGISTERED
+   Rol activo por defecto de app_web / app_movil. Cubre los pasos 1 a 6 del
+   flujo de compra: registro, consulta de productos, carrito, orden,
+   domicilio y método de pago.
    ------------------------- */
--- Paso 1: Registro de credenciales y datos personales
+-- Registro de credenciales y datos personales
 GRANT INSERT ON db_test.tb_users TO 'user_not_registered';
 GRANT INSERT ON db_test.tb_people TO 'user_not_registered';
 
+-- Paso 1: consulta de productos disponibles y verificación de estatus
+GRANT SELECT ON db_test.tb_products TO 'user_not_registered';
+GRANT SELECT ON db_test.tbd_products_users_providers TO 'user_not_registered';
+GRANT SELECT ON db_test.tbc_categories TO 'user_not_registered';
+GRANT SELECT ON db_test.tbd_products_categories TO 'user_not_registered';
+GRANT SELECT ON db_test.vw_available_products TO 'user_not_registered';
+
+-- Pasos 2 y 3: carrito de compra e ítems
+GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tb_carts TO 'user_not_registered';
+GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tbd_cart_items TO 'user_not_registered';
+
+-- Paso 4: orden de compra (la crea el procedimiento con permisos del definidor)
+GRANT EXECUTE ON PROCEDURE db_test.sp_create_order_from_cart TO 'user_not_registered';
+GRANT SELECT ON db_test.tb_orders TO 'user_not_registered';
+GRANT SELECT ON db_test.tbd_buyer_orders TO 'user_not_registered';
+GRANT SELECT ON db_test.tbd_order_items TO 'user_not_registered';
+
+-- Paso 5: domicilio de envío
+GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tb_user_addresses TO 'user_not_registered';
+GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tbd_address_components TO 'user_not_registered';
+
+-- Paso 6: método de pago (tarjeta) vinculado al usuario
+GRANT SELECT ON db_test.tbc_payment_methods_types TO 'user_not_registered';
+GRANT SELECT ON db_test.tb_payment_methods TO 'user_not_registered';
+GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tbd_user_payment_methods TO 'user_not_registered';
+
 /* -------------------------
    BUYER (COMPRADOR)
+   Se activa con SET ROLE al momento de pagar (paso 7). Los pasos 8 a 10 los
+   ejecuta el sistema con los procedimientos sp_authorize_payment,
+   sp_process_order y sp_deliver_order (rol admin / superadmin).
    ------------------------- */
 -- Consulta y actualización de datos de cuenta e información personal
 GRANT SELECT, UPDATE ON db_test.tb_users TO 'buyer';
 GRANT SELECT, UPDATE ON db_test.tb_people TO 'buyer';
 
--- Paso 2: Consulta de catálogo de productos, disponibilidad por proveedor y categorías
+-- Catálogo de productos
 GRANT SELECT ON db_test.tb_products TO 'buyer';
 GRANT SELECT ON db_test.tbd_products_users_providers TO 'buyer';
 GRANT SELECT ON db_test.tbc_categories TO 'buyer';
 GRANT SELECT ON db_test.tbd_products_categories TO 'buyer';
+GRANT SELECT ON db_test.vw_available_products TO 'buyer';
 
--- Pasos 3 y 4: Creación, lectura, actualización y limpieza de carrito de compras e ítems
+-- Carrito, órdenes, envíos y direcciones
 GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tb_carts TO 'buyer';
 GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tbd_cart_items TO 'buyer';
-
--- Pasos 5 y 10: Generación y actualización de ordenes de compra e ítems asociados
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_orders TO 'buyer';
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_seller_orders TO 'buyer';
-GRANT SELECT, INSERT, UPDATE ON db_test.tbd_order_items TO 'buyer';
-
--- Paso 6: Registro de direcciones de envío y componentes de domicilio
+GRANT EXECUTE ON PROCEDURE db_test.sp_create_order_from_cart TO 'buyer';
+GRANT SELECT ON db_test.tb_orders TO 'buyer';
+GRANT SELECT ON db_test.tbd_buyer_orders TO 'buyer';
+GRANT SELECT ON db_test.tbd_order_items TO 'buyer';
+GRANT SELECT ON db_test.tb_shipments TO 'buyer';
 GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tb_user_addresses TO 'buyer';
 GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tbd_address_components TO 'buyer';
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_shipments TO 'buyer';
 
--- Paso 7: Consulta de catálogo de métodos de pago y registro de tarjeta de débito vinculada
+-- Métodos de pago y paso 7: registro del pago único de la orden
 GRANT SELECT ON db_test.tb_payment_methods TO 'buyer';
 GRANT SELECT ON db_test.tbc_payment_methods_types TO 'buyer';
 GRANT SELECT, INSERT, UPDATE, DELETE ON db_test.tbd_user_payment_methods TO 'buyer';
+GRANT EXECUTE ON PROCEDURE db_test.sp_register_payment TO 'buyer';
+GRANT SELECT ON db_test.tb_payments TO 'buyer';
+GRANT SELECT ON db_test.tb_payment_transaction TO 'buyer';
 
--- Pasos 8 y 9: Registro y autorización de pagos y transacciones bancarias
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_payments TO 'buyer';
-GRANT SELECT, INSERT, UPDATE ON db_test.tb_payment_transaction TO 'buyer';
+-- Se retiran permisos de versiones anteriores que permitían al comprador
+-- marcar sus propios pagos u órdenes como pagados
+REVOKE IF EXISTS INSERT, UPDATE ON db_test.tb_orders FROM 'buyer';
+REVOKE IF EXISTS INSERT, UPDATE ON db_test.tb_seller_orders FROM 'buyer';
+REVOKE IF EXISTS INSERT, UPDATE ON db_test.tbd_order_items FROM 'buyer';
+REVOKE IF EXISTS INSERT, UPDATE ON db_test.tb_shipments FROM 'buyer';
+REVOKE IF EXISTS INSERT, UPDATE ON db_test.tb_payments FROM 'buyer';
+REVOKE IF EXISTS INSERT, UPDATE ON db_test.tb_payment_transaction FROM 'buyer';
+REVOKE IF EXISTS SELECT, INSERT, UPDATE ON db_test.tb_seller_orders FROM 'seller';
 
 
 /* ============================================================
@@ -141,9 +180,10 @@ SET DEFAULT ROLE 'admin' TO 'marco.ramirez'@'%';
 SET DEFAULT ROLE 'support' TO 'carlos.rene'@'%';
 SET DEFAULT ROLE 'seller' TO 'juan.pablo'@'%', 'erick.uriel'@'%';
 
--- Activación por defecto de los roles para los usuarios de la aplicación
-SET DEFAULT ROLE 'user_not_registered', 'buyer' TO 'app_web'@'%';
-SET DEFAULT ROLE 'user_not_registered', 'buyer' TO 'app_movil'@'%';
+-- Las apps inician sesión solo con user_not_registered; el rol buyer se activa
+-- con SET ROLE 'buyer' al registrar el pago (paso 7).
+SET DEFAULT ROLE 'user_not_registered' TO 'app_web'@'%';
+SET DEFAULT ROLE 'user_not_registered' TO 'app_movil'@'%';
 
 
 /* ============================================================

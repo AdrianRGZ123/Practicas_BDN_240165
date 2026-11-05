@@ -1,11 +1,30 @@
 erDiagram
-    tb_users ||--o{ tb_carts : "user_ID"
-    tb_users ||--o{ tb_people : "user_ID"
+    tb_users ||--|| tb_carts : "user_ID"
+    tbd_buyer_orders ||--o{ tb_order_cancellations : "buyer_order_ID"
+    tb_orders ||--o{ tb_order_cancellations : "order_ID"
+    tb_users ||--o{ tb_order_cancellations : "requested_by_user_ID"
+    tb_users ||--o{ tb_orders : "User_ID"
+    tb_payments ||--o{ tb_payment_transaction : "payment_ID"
+    tb_refunds ||--o{ tb_payment_transaction : "refund_ID, payment_ID"
+    tb_payment_methods ||--o{ tb_payments : "payment_method_ID"
+    tb_orders ||--o{ tb_payments : "order_ID"
+    tb_users ||--|| tb_people : "user_ID"
+    tb_order_cancellations ||--o{ tb_refunds : "cancellation_ID"
+    tb_payments ||--o{ tb_refunds : "payment_ID"
+    tb_users ||--o{ tb_refunds : "requested_by_user_ID"
+    tb_returns ||--o{ tb_refunds : "return_ID"
+    tbd_buyer_orders ||--o{ tb_returns : "buyer_order_ID"
+    tb_users ||--o{ tb_returns : "requested_by_user_ID"
     tb_users ||--o{ tb_seller_orders : "seller_ID"
+    tb_user_addresses ||--o{ tb_shipments : "address_ID"
+    tbd_buyer_orders ||--o{ tb_shipments : "buyer_order_ID"
     tb_users ||--o{ tb_user_addresses : "user_ID"
     tbc_categories ||--o{ tbc_categories : "sup_id_category"
     tb_user_addresses ||--o{ tbd_address_components : "address_ID"
-    tbd_address_components ||--o{ tbd_address_components : "address_ID"
+    tbd_address_components ||--o{ tbd_address_components : "address_ID, address_sup_ID"
+    tb_users ||--o{ tbd_buyer_orders : "seller_ID"
+    tb_order_cancellations ||--o{ tbd_cancellation_items : "cancellation_ID"
+    tbd_order_items ||--o{ tbd_cancellation_items : "order_item_ID"
     tb_carts ||--o{ tbd_cart_items : "cart_ID"
     tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID"
     tbd_products_users_providers ||--o{ tbd_cart_items : "product_ID"
@@ -16,7 +35,319 @@ erDiagram
     tb_products ||--o{ tbd_products_categories : "product_ID"
     tb_products ||--o{ tbd_products_users_providers : "product_ID"
     tb_users ||--o{ tbd_products_users_providers : "user_ID"
+    tbd_order_items ||--o{ tbd_return_items : "order_item_ID"
+    tb_returns ||--o{ tbd_return_items : "return_ID"
     tb_users ||--o{ tbd_user_payment_methods : "user_ID"
     tbc_payment_methods_types ||--o{ tbd_user_payment_methods : "payment_method_type_ID"
     tb_products ||--o{ tbd_users_wishlist_products : "product_ID"
     tb_users ||--o{ tbd_users_wishlist_products : "user_ID"
+    tb_carts {
+        int_unsigned ID PK
+        int user_ID FK
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_logs {
+        int ID PK
+        varchar_100 table_name
+        enum__Create___Read___Update___Delete operation
+        varchar_80 db_user
+        text description
+        datetime operation_date
+        bit_1 operation_status
+    }
+    tb_order_cancellations {
+        int_unsigned ID PK
+        int_unsigned order_ID FK
+        int_unsigned buyer_order_ID FK
+        int requested_by_user_ID FK
+        enum__WholeOrder___SellerOrder___Items cancellation_scope
+        varchar_60 reason_code
+        varchar_1000 reason_detail
+        enum__Requested___Approved___Rejected___Completed cancellation_status
+        datetime requested_at
+        datetime reviewed_at
+        datetime completed_at
+        varchar_1000 internal_notes
+        datetime creation_date
+        datetime last_update
+    }
+    tb_orders {
+        int_unsigned ID PK
+        varchar_40 key
+        int User_ID FK
+        int total_products
+        decimal_10_3 total_cost
+        enum__Registered___Payed___Canceled___Delivered___Devolved___Attended___Sended status_string
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_payment_methods {
+        int_unsigned ID PK
+        varchar_60 name
+        varchar_255 description
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_payment_transaction {
+        int_unsigned ID PK
+        int_unsigned payment_ID FK
+        int_unsigned refund_ID FK
+        enum__Authorization___Capture___Charge___Void___Refund___Chargeback___Adjustment transaction_type
+        enum__Pending___Succeeded___Failed transaction_status
+        decimal_10_2 amount
+        char_3 currency
+        varchar_60 provider
+        varchar_150 provider_transaction_id
+        varchar_100 idempotency_key
+        varchar_100 response_code
+        varchar_500 response_message
+        datetime request_date
+        datetime response_date
+        datetime creation_date
+        datetime last_update
+    }
+    tb_payments {
+        int_unsigned ID PK
+        int_unsigned order_ID FK
+        int_unsigned payment_method_ID FK
+        decimal_10_2 amount
+        char_3 currency
+        enum__Pending___Authorized___Paid___Failed___Refunded___PartiallyRefunded payment_status
+        varchar_60 provider
+        varchar_150 provider_reference
+        datetime creation_date
+        datetime paid_date
+        datetime last_update
+    }
+    tb_people {
+        bigint_unsigned person_ID PK
+        int user_ID FK
+        varchar_20 courtesy_title
+        varchar_150 given_names
+        varchar_150 family_names
+        date birth_date
+        tinyint_unsigned gender_ID
+        char_2 country_code
+        varchar_25 phone
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_products {
+        int_unsigned id PK
+        varchar_50 sku
+        varchar_250 name
+        text description
+        decimal_10_2 current_price
+        int_unsigned current_stock
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_refunds {
+        int_unsigned ID PK
+        int_unsigned payment_ID FK
+        int_unsigned cancellation_ID FK
+        int_unsigned return_ID FK
+        enum__Cancellation___Return___Adjustment___Goodwill reason
+        decimal_10_2 amount
+        char_3 currency
+        enum__Pending___Submitted___Succeeded___Failed___Canceled refund_status
+        varchar_60 provider
+        varchar_150 provider_reference
+        int requested_by_user_ID FK
+        varchar_1000 reason_detail
+        datetime requested_at
+        datetime processed_at
+        datetime creation_date
+        datetime last_update
+    }
+    tb_returns {
+        int_unsigned ID PK
+        int_unsigned buyer_order_ID FK
+        int requested_by_user_ID FK
+        varchar_60 reason_code
+        varchar_1000 reason_detail
+        enum__Requested___Authorized___Rejected___LabelCreated___InTransit___Received___Inspected___Approved___PartiallyApproved___Refunded___Closed return_status
+        varchar_100 return_carrier
+        varchar_150 return_tracking_number
+        datetime requested_at
+        datetime authorized_at
+        datetime received_at
+        datetime closed_at
+        varchar_1000 internal_notes
+        datetime creation_date
+        datetime last_update
+    }
+    tb_seller_orders {
+        int_unsigned ID PK
+        int seller_ID FK
+        decimal_12_2 subtotal
+        decimal_12_2 shipping_cost
+        enum__Pending___Accepted___Preparing___Sent___Delivered___Canceled___Returned fulfillment_status
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_shipments {
+        int_unsigned ID PK
+        int_unsigned buyer_order_ID FK
+        bigint_unsigned address_ID FK
+        varchar_150 recipient_name
+        varchar_25 recipient_phone
+        varchar_255 address_line_1
+        varchar_255 address_line_2
+        varchar_120 city
+        varchar_120 state_region
+        varchar_20 postal_code
+        char_2 country_code
+        varchar_100 carrier
+        varchar_100 service_level
+        varchar_150 tracking_number
+        varchar_500 tracking_url
+        enum__Pending___LabelCreated___ReadyToShip___InTransit___OutForDelivery___Delivered___DeliveryFailed___Lost___Returned shipment_status
+        decimal_12_2 shipping_cost
+        datetime shipped_at
+        datetime estimated_delivery_at
+        datetime delivered_at
+        datetime creation_date
+        datetime last_update
+    }
+    tb_user_addresses {
+        bigint_unsigned ID PK
+        int user_ID FK
+        varchar_100 address_label
+        varchar_150 recipient_name
+        varchar_25 recipient_phone
+        varchar_500 delivery_instructions
+        decimal_10_7 latitude
+        decimal_10_7 longitude
+        tinyint_1 is_default
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tb_users {
+        int ID PK
+        varchar_80 email
+        varchar_100 nickname
+        varchar_255 password
+        datetime creation_date
+        datetime last_update
+        datetime last_login
+        bit_1 status
+    }
+    tbc_categories {
+        int_unsigned ID PK
+        varchar_120 name
+        text description
+        int_unsigned sup_id_category FK
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tbc_payment_methods_types {
+        int_unsigned ID PK
+        varchar_30 code
+        text description
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_address_components {
+        bigint_unsigned ID PK
+        bigint_unsigned address_ID FK
+        varchar_255 value
+        varchar_50 component_type
+        bit_1 status
+        bigint_unsigned address_sup_ID FK
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_buyer_orders {
+        int_unsigned ID PK
+        int seller_ID FK
+        decimal_12_2 subtotal
+        decimal_12_2 shipping_cost
+        enum__Pending___Accepted___Preparing___Sent___Delivered___Canceled___Returned fulfillment_status
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_cancellation_items {
+        int_unsigned ID PK
+        int_unsigned cancellation_ID FK
+        int_unsigned order_item_ID FK
+        int_unsigned quantity
+        datetime creation_date
+    }
+    tbd_cart_items {
+        int_unsigned cart_ID PK
+        int provider_ID PK
+        int_unsigned product_ID PK
+        int_unsigned quantity
+        datetime creation_date
+    }
+    tbd_order_items {
+        int_unsigned ID PK
+        int_unsigned seller_order_ID FK
+        int_unsigned product_ID FK
+        int provider_ID FK
+        varchar_255 product_name
+        int_unsigned quantity
+        decimal_12_2 unit_price
+        decimal_12_2 subtotal
+        datetime creation_date
+    }
+    tbd_products_categories {
+        int_unsigned category_ID PK
+        int_unsigned product_ID PK
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_products_users_providers {
+        int user_ID PK
+        int_unsigned product_ID PK
+        enum__Owner___Reseller___Distributor type_ownership
+        bit_1 status
+        datetime available_date
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_return_items {
+        int_unsigned ID PK
+        int_unsigned return_ID FK
+        int_unsigned order_item_ID FK
+        int_unsigned quantity
+        enum__Unopened___Unused___Used___Damaged___Defective___Other item_condition
+        enum__Pending___Restock___Repair___Dispose___SupplierReturn disposition
+        decimal_12_2 approved_refund_amount
+        enum__Requested___Approved___Rejected___Received___Refunded item_status
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_user_payment_methods {
+        bigint_unsigned ID PK
+        int user_ID FK
+        int_unsigned payment_method_type_ID FK
+        varchar_60 provider
+        varchar_255 provider_method_ref
+        varchar_100 label
+        char_4 last_four
+        tinyint_1 is_default
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }
+    tbd_users_wishlist_products {
+        int user_ID PK
+        int_unsigned product_ID PK
+        bit_1 status
+        datetime creation_date
+        datetime last_update
+    }

@@ -465,6 +465,8 @@ function sectionNodes(h) {
 function wireSearch() {
   const q = $("#q");
   q.addEventListener("input", () => {
+    const onEr = $("#p-er") && $("#p-er").classList.contains("active");
+    if (onEr) { const es = $("#erSearch"); if (es) { es.value = q.value; es.dispatchEvent(new Event("input")); } return; }
     const term = q.value.trim().toLowerCase();
     $$("[data-table]").forEach(h => {
       const sec = sectionNodes(h);
@@ -489,6 +491,8 @@ function route() {
   $$("#nav a").forEach(a => a.classList.toggle("active", a.dataset.p === id));
   $("#nav").classList.remove("open");
   if (id === "er") setTimeout(erFit, 60);
+  const gq = $("#q");
+  if (gq) gq.placeholder = id === "er" ? "Buscar tabla del esquema…" : "Buscar tabla, columna, trigger o procedimiento…";
 }
 addEventListener("hashchange", route);
 $("#menuBtn").addEventListener("click", () => $("#nav").classList.toggle("open"));
@@ -663,8 +667,9 @@ function bindErSearch() {
       apply();
     }
   };
-  q.addEventListener("input", () => run(ents.some(g => g.dataset.n.toLowerCase() === q.value.trim().toLowerCase())));
-  q.addEventListener("keydown", e => { if (e.key === "Enter") run(true); });
+  q.addEventListener("input", () => { const g = $("#q"); if (g && g.value !== q.value) g.value = q.value; run(ents.some(g => g.dataset.n.toLowerCase() === q.value.trim().toLowerCase())); });
+  const enter = e => { if (e.key === "Enter") { if (e.target !== q) q.value = e.target.value; run(true); } };
+  q.addEventListener("keydown", enter); $("#q").addEventListener("keydown", e => { if ($("#p-er").classList.contains("active")) enter(e); });
   q.addEventListener("search", () => { run(false); if (!q.value) erFit(); });
 }
 

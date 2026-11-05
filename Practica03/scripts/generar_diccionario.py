@@ -110,7 +110,7 @@ for n in re.findall(r"CREATE VIEW `(\w+)` AS SELECT", sql):   # por si alguna no
 
 # ---------------------------------------------------------------- rutinas
 routines = []
-for m in re.finditer(r"CREATE DEFINER=`\w+`@`[^`]+` (PROCEDURE|FUNCTION) `(\w+)`\((.*?)\)(\s*RETURNS [^\n]+)?\n(.*?)END ;;", sql, re.S):
+for m in re.finditer(r"CREATE DEFINER=`[^`]+`@`[^`]+` (PROCEDURE|FUNCTION) `(\w+)`\((.*?)\)(\s*RETURNS [^\n]+)?\n(?=\s*(?:NO SQL|DETERMINISTIC|READS|MODIFIES|CONTAINS|BEGIN|SQL SECURITY|COMMENT))(.*?)END ;;", sql, re.S):
     kind, n, params, ret, body = m.groups()
     ps = [re.sub(r"\s+", " ", p.strip()) for p in params.split(",") if p.strip()]
     touched = sorted(set(re.findall(r"(?:FROM|INTO|UPDATE|JOIN)\s+`?(tb\w*)`?", body, re.I)))

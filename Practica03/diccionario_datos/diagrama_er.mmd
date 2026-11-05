@@ -1,5 +1,5 @@
 erDiagram
-    tb_users ||--|| tb_carts : "user_ID"
+    tb_users ||--o{ tb_carts : "user_ID"
     tbd_buyer_orders ||--o{ tb_order_cancellations : "buyer_order_ID"
     tb_orders ||--o{ tb_order_cancellations : "order_ID"
     tb_users ||--o{ tb_order_cancellations : "requested_by_user_ID"
@@ -8,6 +8,7 @@ erDiagram
     tb_refunds ||--o{ tb_payment_transaction : "refund_ID, payment_ID"
     tb_payment_methods ||--o{ tb_payments : "payment_method_ID"
     tb_orders ||--o{ tb_payments : "order_ID"
+    tbd_user_payment_methods ||--o{ tb_payments : "user_payment_method_ID"
     tb_users ||--|| tb_people : "user_ID"
     tb_order_cancellations ||--o{ tb_refunds : "cancellation_ID"
     tb_payments ||--o{ tb_refunds : "payment_ID"
@@ -22,15 +23,14 @@ erDiagram
     tbc_categories ||--o{ tbc_categories : "sup_id_category"
     tb_user_addresses ||--o{ tbd_address_components : "address_ID"
     tbd_address_components ||--o{ tbd_address_components : "address_ID, address_sup_ID"
+    tb_orders ||--o{ tbd_buyer_orders : "order_ID"
     tb_users ||--o{ tbd_buyer_orders : "seller_ID"
     tb_order_cancellations ||--o{ tbd_cancellation_items : "cancellation_ID"
     tbd_order_items ||--o{ tbd_cancellation_items : "order_item_ID"
+    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID, product_ID"
     tb_carts ||--o{ tbd_cart_items : "cart_ID"
-    tbd_products_users_providers ||--o{ tbd_cart_items : "provider_ID"
-    tbd_products_users_providers ||--o{ tbd_cart_items : "product_ID"
-    tb_seller_orders ||--o{ tbd_order_items : "seller_order_ID"
-    tbd_products_users_providers ||--o{ tbd_order_items : "product_ID"
-    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID"
+    tbd_buyer_orders ||--o{ tbd_order_items : "buyer_order_ID"
+    tbd_products_users_providers ||--o{ tbd_order_items : "provider_ID, product_ID"
     tbc_categories ||--o{ tbd_products_categories : "category_ID"
     tb_products ||--o{ tbd_products_categories : "product_ID"
     tb_products ||--o{ tbd_products_users_providers : "product_ID"
@@ -45,6 +45,7 @@ erDiagram
         int_unsigned ID PK
         int user_ID FK
         bit_1 status
+        int active_user_ID
         datetime creation_date
         datetime last_update
     }
@@ -78,7 +79,7 @@ erDiagram
         varchar_40 key
         int User_ID FK
         int total_products
-        decimal_10_3 total_cost
+        decimal_12_2 total_cost
         enum__Registered___Payed___Canceled___Delivered___Devolved___Attended___Sended status_string
         bit_1 status
         datetime creation_date
@@ -114,6 +115,7 @@ erDiagram
         int_unsigned ID PK
         int_unsigned order_ID FK
         int_unsigned payment_method_ID FK
+        bigint_unsigned user_payment_method_ID FK
         decimal_10_2 amount
         char_3 currency
         enum__Pending___Authorized___Paid___Failed___Refunded___PartiallyRefunded payment_status
@@ -270,6 +272,7 @@ erDiagram
     }
     tbd_buyer_orders {
         int_unsigned ID PK
+        int_unsigned order_ID FK
         int seller_ID FK
         decimal_12_2 subtotal
         decimal_12_2 shipping_cost
@@ -294,7 +297,7 @@ erDiagram
     }
     tbd_order_items {
         int_unsigned ID PK
-        int_unsigned seller_order_ID FK
+        int_unsigned buyer_order_ID FK
         int_unsigned product_ID FK
         int provider_ID FK
         varchar_255 product_name

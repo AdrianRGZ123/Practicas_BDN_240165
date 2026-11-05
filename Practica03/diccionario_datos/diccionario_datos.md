@@ -1,6 +1,6 @@
 # Diccionario de datos — `db_test`
 
-> Fuente: `Respaldo 28-10-26.sql`. Generado automáticamente desde el DDL del respaldo (MySQL 8.0.42, volcado 2026-10-28). Los conteos de registros se obtuvieron contando las sentencias `INSERT` del mismo respaldo; no se reproducen datos.
+> Fuente: `Respaldo 29-10-26.sql`. Generado automáticamente desde el DDL del respaldo (MySQL 8.0.42, volcado 2026-11-04). Los conteos de registros se obtuvieron contando las sentencias `INSERT` del mismo respaldo; no se reproducen datos.
 
 ## Índice
 
@@ -20,41 +20,41 @@
 |---|---:|
 | Tablas | 27 |
 | Vistas | 29 |
-| Triggers | 84 |
-| Procedimientos | 6 |
-| Funciones | 4 |
+| Triggers | 85 |
+| Procedimientos | 15 |
+| Funciones | 6 |
 | Relaciones FK | 42 |
 
 Registros por tabla (según los `INSERT` del respaldo):
 
 | Tabla | Registros |
 |---|---:|
-| `tb_logs` | 38 054 |
+| `tb_logs` | 83 804 |
 | `tbd_products_categories` | 23 020 |
 | `tb_products` | 15 007 |
+| `tbd_products_users_providers` | 15 007 |
+| `tb_users` | 10 240 |
+| `tb_people` | 10 226 |
 | `tbc_categories` | 100 |
-| `tb_users` | 16 |
-| `tb_people` | 3 |
+| `tbd_address_components` | 7 |
+| `tb_shipments` | 5 |
+| `tbd_buyer_orders` | 5 |
+| `tbd_cart_items` | 5 |
+| `tb_payment_methods` | 4 |
+| `tbc_payment_methods_types` | 4 |
+| `tb_payment_transaction` | 2 |
+| `tb_orders` | 1 |
+| `tb_payments` | 1 |
+| `tb_user_addresses` | 1 |
+| `tbd_user_payment_methods` | 1 |
 | `tb_carts` | 0 |
 | `tb_order_cancellations` | 0 |
-| `tb_orders` | 0 |
-| `tb_payment_methods` | 0 |
-| `tb_payment_transaction` | 0 |
-| `tb_payments` | 0 |
 | `tb_refunds` | 0 |
 | `tb_returns` | 0 |
 | `tb_seller_orders` | 0 |
-| `tb_shipments` | 0 |
-| `tb_user_addresses` | 0 |
-| `tbc_payment_methods_types` | 0 |
-| `tbd_address_components` | 0 |
-| `tbd_buyer_orders` | 0 |
 | `tbd_cancellation_items` | 0 |
-| `tbd_cart_items` | 0 |
 | `tbd_order_items` | 0 |
-| `tbd_products_users_providers` | 0 |
 | `tbd_return_items` | 0 |
-| `tbd_user_payment_methods` | 0 |
 | `tbd_users_wishlist_products` | 0 |
 
 ## Tablas y columnas
@@ -68,16 +68,17 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 1 | `ID` | `int unsigned` | NO | — | AUTO_INCREMENT | PK | Identificador autogenerado del registro de carts. | Obligatorio; Identificador |
 | 2 | `user_ID` | `int` | NO | — | — | FK | Referencia a `tb_users.ID`; vincula el registro de carts con su entidad relacionada. | Obligatorio; Identificador |
 | 3 | `status` | `bit(1)` | SÍ | b'1' | — | — | Estado lógico del registro (1 = activo, 0 = inactivo). | Opcional; Cualitativa nominal |
-| 4 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
-| 5 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
+| 4 | `active_user_ID` | `int` | SÍ | — | GENERADA STORED: if((`status` = 0x01),`user_ID`,NULL) | — | Valor calculado automáticamente por el motor a partir de otras columnas. | Opcional; Cuantitativa |
+| 5 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
+| 6 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_cart_user` (`user_ID`); FK `tb_carts_ibfk_1` (`user_ID`) → `tb_users` (`ID`)
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_cart_active_user` (`active_user_ID`); ÍNDICE `idx_cart_user` (`user_ID`); FK `tb_carts_ibfk_1` (`user_ID`) → `tb_users` (`ID`)
 **Relaciones:** `tb_carts_ibfk_1`: `tb_carts` (user_ID) → `tb_users` (ID); Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_1`
 **Triggers asociados:** `trg_tb_carts_after_insert`, `trg_tb_carts_after_update`, `trg_tb_carts_after_delete`
 
 ### `tb_logs`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 38054.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 83804.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -120,7 +121,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tb_orders`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 1.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -128,19 +129,19 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 2 | `key` | `varchar(40)` | NO | — | — | — | Atributo «key» de orders. | Obligatorio; Cualitativa |
 | 3 | `User_ID` | `int` | NO | — | — | FK | Referencia a `tb_users.ID`; vincula el registro de orders con su entidad relacionada. | Obligatorio; Identificador |
 | 4 | `total_products` | `int` | NO | — | — | — | Atributo «total products» de orders. | Obligatorio; Cuantitativa |
-| 5 | `total_cost` | `decimal(10,3)` | NO | '0.000' | — | — | Atributo «total cost» de orders. | Obligatorio; Cuantitativa |
+| 5 | `total_cost` | `decimal(12,2)` | NO | '0.00' | — | — | Atributo «total cost» de orders. | Obligatorio; Cuantitativa |
 | 6 | `status_string` | `enum('Registered','Payed','Canceled','Delivered','Devolved','Attended','Sended')` | NO | 'Registered' | — | — | Atributo «status string» de orders. | Obligatorio; Cualitativa nominal |
 | 7 | `status` | `bit(1)` | SÍ | b'1' | — | — | Estado lógico del registro (1 = activo, 0 = inactivo). | Opcional; Cualitativa nominal |
 | 8 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
 | 9 | `last_update` | `datetime` | SÍ | NULL | — | — | Fecha y hora de la última modificación. | Opcional; Temporal |
 
-**Restricciones/índices:** PK (`ID`); ÍNDICE `fk_user_2_idx` (`User_ID`); FK `fk_user_2` (`User_ID`) → `tb_users` (`ID`)
-**Relaciones:** `fk_user_2`: `tb_orders` (User_ID) → `tb_users` (ID); Tabla hija `tb_order_cancellations` mediante `fk_cancellations_order`; Tabla hija `tb_payments` mediante `fk_payment_order`
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_orders_key` (`key`); ÍNDICE `fk_user_2_idx` (`User_ID`); FK `fk_user_2` (`User_ID`) → `tb_users` (`ID`)
+**Relaciones:** `fk_user_2`: `tb_orders` (User_ID) → `tb_users` (ID); Tabla hija `tb_order_cancellations` mediante `fk_cancellations_order`; Tabla hija `tb_payments` mediante `fk_payment_order`; Tabla hija `tbd_buyer_orders` mediante `fk_buyer_orders_order`
 **Triggers asociados:** `trg_tb_orders_after_insert`, `trg_tb_orders_after_update`, `trg_tb_orders_after_delete`
 
 ### `tb_payment_methods`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 4.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -157,7 +158,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tb_payment_transaction`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 2.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -184,29 +185,30 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tb_payments`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 1.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
 | 1 | `ID` | `int unsigned` | NO | — | AUTO_INCREMENT | PK | Identificador autogenerado del registro de payments. | Obligatorio; Identificador |
 | 2 | `order_ID` | `int unsigned` | NO | — | — | FK | Referencia a `tb_orders.ID`; vincula el registro de payments con su entidad relacionada. | Obligatorio; Identificador |
 | 3 | `payment_method_ID` | `int unsigned` | NO | — | — | FK | Referencia a `tb_payment_methods.ID`; vincula el registro de payments con su entidad relacionada. | Obligatorio; Identificador |
-| 4 | `amount` | `decimal(10,2)` | NO | — | — | — | Monto de la operación. | Obligatorio; Cuantitativa |
-| 5 | `currency` | `char(3)` | NO | 'MXN' | — | — | Moneda del importe. | Obligatorio; Cualitativa |
-| 6 | `payment_status` | `enum('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded')` | NO | 'Pending' | — | — | Estado del flujo de payments. | Obligatorio; Cualitativa nominal |
-| 7 | `provider` | `varchar(60)` | SÍ | NULL | — | — | Proveedor externo del servicio/medio. | Opcional; Cualitativa |
-| 8 | `provider_reference` | `varchar(150)` | SÍ | NULL | — | — | Referencia externa asignada por el proveedor. | Opcional; Cualitativa |
-| 9 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
-| 10 | `paid_date` | `datetime` | SÍ | NULL | — | — | Fecha/hora asociada a paid date en payments. | Opcional; Temporal |
-| 11 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
+| 4 | `user_payment_method_ID` | `bigint unsigned` | SÍ | NULL | — | FK | Referencia a `tbd_user_payment_methods.ID`; vincula el registro de payments con su entidad relacionada. | Opcional; Identificador |
+| 5 | `amount` | `decimal(10,2)` | NO | — | — | — | Monto de la operación. | Obligatorio; Cuantitativa |
+| 6 | `currency` | `char(3)` | NO | 'MXN' | — | — | Moneda del importe. | Obligatorio; Cualitativa |
+| 7 | `payment_status` | `enum('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded')` | NO | 'Pending' | — | — | Estado del flujo de payments. | Obligatorio; Cualitativa nominal |
+| 8 | `provider` | `varchar(60)` | SÍ | NULL | — | — | Proveedor externo del servicio/medio. | Opcional; Cualitativa |
+| 9 | `provider_reference` | `varchar(150)` | SÍ | NULL | — | — | Referencia externa asignada por el proveedor. | Opcional; Cualitativa |
+| 10 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
+| 11 | `paid_date` | `datetime` | SÍ | NULL | — | — | Fecha/hora asociada a paid date en payments. | Opcional; Temporal |
+| 12 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_provider_reference` (`provider`, `provider_reference`); ÍNDICE `idx_payment_order` (`order_ID`); ÍNDICE `fk_payment_method` (`payment_method_ID`); FK `fk_payment_method` (`payment_method_ID`) → `tb_payment_methods` (`ID`); FK `fk_payment_order` (`order_ID`) → `tb_orders` (`ID`); CHECK `chk_payment_amount`: `((`amount` > 0))`
-**Relaciones:** `fk_payment_method`: `tb_payments` (payment_method_ID) → `tb_payment_methods` (ID); `fk_payment_order`: `tb_payments` (order_ID) → `tb_orders` (ID); Tabla hija `tb_payment_transaction` mediante `fk_payment_transaction_payment`; Tabla hija `tb_refunds` mediante `fk_refunds_payment`
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_payment_provider_reference` (`provider`, `provider_reference`); ÍNDICE `idx_payment_order` (`order_ID`); ÍNDICE `fk_payment_method` (`payment_method_ID`); ÍNDICE `idx_payment_user_method` (`user_payment_method_ID`); FK `fk_payment_method` (`payment_method_ID`) → `tb_payment_methods` (`ID`); FK `fk_payment_order` (`order_ID`) → `tb_orders` (`ID`); FK `fk_payment_user_method` (`user_payment_method_ID`) → `tbd_user_payment_methods` (`ID`); CHECK `chk_payment_amount`: `((`amount` > 0))`
+**Relaciones:** `fk_payment_method`: `tb_payments` (payment_method_ID) → `tb_payment_methods` (ID); `fk_payment_order`: `tb_payments` (order_ID) → `tb_orders` (ID); `fk_payment_user_method`: `tb_payments` (user_payment_method_ID) → `tbd_user_payment_methods` (ID); Tabla hija `tb_payment_transaction` mediante `fk_payment_transaction_payment`; Tabla hija `tb_refunds` mediante `fk_refunds_payment`
 **Triggers asociados:** `trg_tb_payments_after_insert`, `trg_tb_payments_after_update`, `trg_tb_payments_after_delete`
 
 ### `tb_people`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 3.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 10226.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -316,12 +318,12 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 8 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
 
 **Restricciones/índices:** PK (`ID`); ÍNDICE `seller_ID` (`seller_ID`); FK `tb_seller_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tb_seller_orders_chk_1`: `((`subtotal` >= 0))`; CHECK `tb_seller_orders_chk_2`: `((`shipping_cost` >= 0))`
-**Relaciones:** `tb_seller_orders_ibfk_1`: `tb_seller_orders` (seller_ID) → `tb_users` (ID); Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_1`
+**Relaciones:** `tb_seller_orders_ibfk_1`: `tb_seller_orders` (seller_ID) → `tb_users` (ID)
 **Triggers asociados:** `trg_tb_seller_orders_after_insert`, `trg_tb_seller_orders_after_update`, `trg_tb_seller_orders_after_delete`
 
 ### `tb_shipments`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 5.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -354,7 +356,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tb_user_addresses`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 1.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -377,7 +379,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tb_users`
 
-- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 16.
+- **Prefijo/tipo:** tb_ (principal). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 10240.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -414,7 +416,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tbc_payment_methods_types`
 
-- **Prefijo/tipo:** tbc_ (catálogo). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tbc_ (catálogo). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 4.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -431,7 +433,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tbd_address_components`
 
-- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 7.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -450,21 +452,22 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tbd_buyer_orders`
 
-- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 5.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
 | 1 | `ID` | `int unsigned` | NO | — | AUTO_INCREMENT | PK | Identificador autogenerado del registro de buyer orders. | Obligatorio; Identificador |
-| 2 | `seller_ID` | `int` | NO | — | — | FK | Referencia a `tb_users.ID`; vincula el registro de buyer orders con su entidad relacionada. | Obligatorio; Identificador |
-| 3 | `subtotal` | `decimal(12,2)` | NO | '0.00' | — | — | Importe parcial (sin envío). | Obligatorio; Cuantitativa |
-| 4 | `shipping_cost` | `decimal(12,2)` | NO | '0.00' | — | — | Costo de envío. | Obligatorio; Cuantitativa |
-| 5 | `fulfillment_status` | `enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NO | 'Pending' | — | — | Estado del flujo de buyer orders. | Obligatorio; Cualitativa nominal |
-| 6 | `status` | `bit(1)` | NO | b'1' | — | — | Estado lógico del registro (1 = activo, 0 = inactivo). | Obligatorio; Cualitativa nominal |
-| 7 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
-| 8 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
+| 2 | `order_ID` | `int unsigned` | NO | — | — | FK | Referencia a `tb_orders.ID`; vincula el registro de buyer orders con su entidad relacionada. | Obligatorio; Identificador |
+| 3 | `seller_ID` | `int` | NO | — | — | FK | Referencia a `tb_users.ID`; vincula el registro de buyer orders con su entidad relacionada. | Obligatorio; Identificador |
+| 4 | `subtotal` | `decimal(12,2)` | NO | '0.00' | — | — | Importe parcial (sin envío). | Obligatorio; Cuantitativa |
+| 5 | `shipping_cost` | `decimal(12,2)` | NO | '0.00' | — | — | Costo de envío. | Obligatorio; Cuantitativa |
+| 6 | `fulfillment_status` | `enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NO | 'Pending' | — | — | Estado del flujo de buyer orders. | Obligatorio; Cualitativa nominal |
+| 7 | `status` | `bit(1)` | NO | b'1' | — | — | Estado lógico del registro (1 = activo, 0 = inactivo). | Obligatorio; Cualitativa nominal |
+| 8 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
+| 9 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
 
-**Restricciones/índices:** PK (`ID`); ÍNDICE `seller_ID` (`seller_ID`); FK `tbd_buyer_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tbd_buyer_orders_chk_1`: `((`subtotal` >= 0))`; CHECK `tbd_buyer_orders_chk_2`: `((`shipping_cost` >= 0))`
-**Relaciones:** `tbd_buyer_orders_ibfk_1`: `tbd_buyer_orders` (seller_ID) → `tb_users` (ID); Tabla hija `tb_order_cancellations` mediante `fk_cancellations_buyer_order`; Tabla hija `tb_returns` mediante `fk_returns_buyer_order`; Tabla hija `tb_shipments` mediante `fk_shipments_buyer_order`
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_buyer_orders_order_seller` (`order_ID`, `seller_ID`); ÍNDICE `seller_ID` (`seller_ID`); FK `fk_buyer_orders_order` (`order_ID`) → `tb_orders` (`ID`); FK `tbd_buyer_orders_ibfk_1` (`seller_ID`) → `tb_users` (`ID`); CHECK `tbd_buyer_orders_chk_1`: `((`subtotal` >= 0))`; CHECK `tbd_buyer_orders_chk_2`: `((`shipping_cost` >= 0))`
+**Relaciones:** `fk_buyer_orders_order`: `tbd_buyer_orders` (order_ID) → `tb_orders` (ID); `tbd_buyer_orders_ibfk_1`: `tbd_buyer_orders` (seller_ID) → `tb_users` (ID); Tabla hija `tb_order_cancellations` mediante `fk_cancellations_buyer_order`; Tabla hija `tb_returns` mediante `fk_returns_buyer_order`; Tabla hija `tb_shipments` mediante `fk_shipments_buyer_order`; Tabla hija `tbd_order_items` mediante `fk_order_items_buyer_order`
 **Triggers asociados:** `trg_tbd_buyer_orders_after_insert`, `trg_tbd_buyer_orders_after_update`, `trg_tbd_buyer_orders_after_delete`
 
 ### `tbd_cancellation_items`
@@ -485,7 +488,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tbd_cart_items`
 
-- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 5.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -495,9 +498,9 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 4 | `quantity` | `int unsigned` | NO | '1' | — | — | Cantidad de unidades. | Obligatorio; Cuantitativa |
 | 5 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
 
-**Restricciones/índices:** PK (`cart_ID`, `provider_ID`, `product_ID`); ÍNDICE `provider_ID` (`provider_ID`); ÍNDICE `product_ID` (`product_ID`); FK `tbd_cart_items_ibfk_1` (`cart_ID`) → `tb_carts` (`ID`); FK `tbd_cart_items_ibfk_2` (`provider_ID`) → `tbd_products_users_providers` (`user_ID`); FK `tbd_cart_items_ibfk_3` (`product_ID`) → `tbd_products_users_providers` (`product_ID`); CHECK `chk_cart_quantity`: `((`quantity` > 0))`
-**Relaciones:** `tbd_cart_items_ibfk_1`: `tbd_cart_items` (cart_ID) → `tb_carts` (ID); `tbd_cart_items_ibfk_2`: `tbd_cart_items` (provider_ID) → `tbd_products_users_providers` (user_ID); `tbd_cart_items_ibfk_3`: `tbd_cart_items` (product_ID) → `tbd_products_users_providers` (product_ID)
-**Triggers asociados:** `trg_tbd_cart_items_after_insert`, `trg_tbd_cart_items_after_update`, `trg_tbd_cart_items_after_delete`
+**Restricciones/índices:** PK (`cart_ID`, `provider_ID`, `product_ID`); ÍNDICE `provider_ID` (`provider_ID`); ÍNDICE `product_ID` (`product_ID`); ÍNDICE `idx_cart_items_provider_product` (`provider_ID`, `product_ID`); FK `fk_cart_items_provider_product` (`provider_ID`, `product_ID`) → `tbd_products_users_providers` (`user_ID`, `product_ID`); FK `tbd_cart_items_ibfk_1` (`cart_ID`) → `tb_carts` (`ID`); CHECK `chk_cart_quantity`: `((`quantity` > 0))`
+**Relaciones:** `fk_cart_items_provider_product`: `tbd_cart_items` (provider_ID, product_ID) → `tbd_products_users_providers` (user_ID, product_ID); `tbd_cart_items_ibfk_1`: `tbd_cart_items` (cart_ID) → `tb_carts` (ID)
+**Triggers asociados:** `trg_tbd_cart_items_before_insert`, `trg_tbd_cart_items_after_insert`, `trg_tbd_cart_items_after_update`, `trg_tbd_cart_items_after_delete`
 
 ### `tbd_order_items`
 
@@ -506,7 +509,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
 | 1 | `ID` | `int unsigned` | NO | — | AUTO_INCREMENT | PK | Identificador autogenerado del registro de order items. | Obligatorio; Identificador |
-| 2 | `seller_order_ID` | `int unsigned` | NO | — | — | FK | Referencia a `tb_seller_orders.ID`; vincula el registro de order items con su entidad relacionada. | Obligatorio; Identificador |
+| 2 | `buyer_order_ID` | `int unsigned` | NO | — | — | FK | Referencia a `tbd_buyer_orders.ID`; vincula el registro de order items con su entidad relacionada. | Obligatorio; Identificador |
 | 3 | `product_ID` | `int unsigned` | NO | — | — | FK | Referencia a `tbd_products_users_providers.product_ID`; vincula el registro de order items con su entidad relacionada. | Obligatorio; Identificador |
 | 4 | `provider_ID` | `int` | NO | — | — | FK | Referencia a `tbd_products_users_providers.user_ID`; vincula el registro de order items con su entidad relacionada. | Obligatorio; Identificador |
 | 5 | `product_name` | `varchar(255)` | NO | — | — | — | Atributo «product name» de order items. | Obligatorio; Cualitativa |
@@ -515,8 +518,8 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 8 | `subtotal` | `decimal(12,2)` | SÍ | — | GENERADA STORED: (`quantity` * `unit_price`) | — | Valor calculado automáticamente por el motor a partir de otras columnas. | Opcional; Cuantitativa |
 | 9 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
 
-**Restricciones/índices:** PK (`ID`); ÍNDICE `seller_order_ID` (`seller_order_ID`); ÍNDICE `product_ID` (`product_ID`); ÍNDICE `provider_ID` (`provider_ID`); FK `tbd_order_items_ibfk_1` (`seller_order_ID`) → `tb_seller_orders` (`ID`); FK `tbd_order_items_ibfk_2` (`product_ID`) → `tbd_products_users_providers` (`product_ID`); FK `tbd_order_items_ibfk_3` (`provider_ID`) → `tbd_products_users_providers` (`user_ID`); CHECK `tbd_order_items_chk_1`: `((`quantity` > 0))`; CHECK `tbd_order_items_chk_2`: `((`unit_price` >= 0))`
-**Relaciones:** `tbd_order_items_ibfk_1`: `tbd_order_items` (seller_order_ID) → `tb_seller_orders` (ID); `tbd_order_items_ibfk_2`: `tbd_order_items` (product_ID) → `tbd_products_users_providers` (product_ID); `tbd_order_items_ibfk_3`: `tbd_order_items` (provider_ID) → `tbd_products_users_providers` (user_ID); Tabla hija `tbd_cancellation_items` mediante `fk_cancellation_items_order_item`; Tabla hija `tbd_return_items` mediante `fk_return_items_order_item`
+**Restricciones/índices:** PK (`ID`); ÍNDICE `idx_order_items_buyer_order` (`buyer_order_ID`); ÍNDICE `product_ID` (`product_ID`); ÍNDICE `provider_ID` (`provider_ID`); ÍNDICE `idx_order_items_provider_product` (`provider_ID`, `product_ID`); FK `fk_order_items_buyer_order` (`buyer_order_ID`) → `tbd_buyer_orders` (`ID`); FK `fk_order_items_provider_product` (`provider_ID`, `product_ID`) → `tbd_products_users_providers` (`user_ID`, `product_ID`); CHECK `tbd_order_items_chk_1`: `((`quantity` > 0))`; CHECK `tbd_order_items_chk_2`: `((`unit_price` >= 0))`
+**Relaciones:** `fk_order_items_buyer_order`: `tbd_order_items` (buyer_order_ID) → `tbd_buyer_orders` (ID); `fk_order_items_provider_product`: `tbd_order_items` (provider_ID, product_ID) → `tbd_products_users_providers` (user_ID, product_ID); Tabla hija `tbd_cancellation_items` mediante `fk_cancellation_items_order_item`; Tabla hija `tbd_return_items` mediante `fk_return_items_order_item`
 **Triggers asociados:** `trg_tbd_order_items_after_insert`, `trg_tbd_order_items_after_update`, `trg_tbd_order_items_after_delete`
 
 ### `tbd_products_categories`
@@ -537,7 +540,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tbd_products_users_providers`
 
-- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 15007.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -550,7 +553,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 7 | `last_update` | `datetime` | NO | CURRENT_TIMESTAMP | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Obligatorio; Temporal |
 
 **Restricciones/índices:** PK (`user_ID`, `product_ID`); ÍNDICE `fk_products2` (`product_ID`); FK `fk_products2` (`product_ID`) → `tb_products` (`id`); FK `fk_user1` (`user_ID`) → `tb_users` (`ID`)
-**Relaciones:** `fk_products2`: `tbd_products_users_providers` (product_ID) → `tb_products` (id); `fk_user1`: `tbd_products_users_providers` (user_ID) → `tb_users` (ID); Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_2`; Tabla hija `tbd_cart_items` mediante `tbd_cart_items_ibfk_3`; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_2`; Tabla hija `tbd_order_items` mediante `tbd_order_items_ibfk_3`
+**Relaciones:** `fk_products2`: `tbd_products_users_providers` (product_ID) → `tb_products` (id); `fk_user1`: `tbd_products_users_providers` (user_ID) → `tb_users` (ID); Tabla hija `tbd_cart_items` mediante `fk_cart_items_provider_product`; Tabla hija `tbd_order_items` mediante `fk_order_items_provider_product`
 **Triggers asociados:** `trg_products_users_providers_after_insert`, `trg_products_users_providers_after_update`, `trg_products_users_providers_after_delete`
 
 ### `tbd_return_items`
@@ -576,7 +579,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### `tbd_user_payment_methods`
 
-- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 0.
+- **Prefijo/tipo:** tbd_ (detalle/asociación). **Motor:** InnoDB. **Charset/collation:** utf8mb4 / utf8mb4_0900_ai_ci. **Registros:** 1.
 
 | # | Columna | Tipo | NULL | Default | Extras | Llave | Descripción | Clasificación |
 |---:|---|---|:---:|---|---|---|---|---|
@@ -592,8 +595,8 @@ Registros por tabla (según los `INSERT` del respaldo):
 | 10 | `creation_date` | `datetime` | NO | CURRENT_TIMESTAMP | — | — | Fecha y hora de creación del registro. | Obligatorio; Temporal |
 | 11 | `last_update` | `datetime` | SÍ | NULL | ON UPDATE CURRENT_TIMESTAMP | — | Fecha y hora de la última modificación. | Opcional; Temporal |
 
-**Restricciones/índices:** PK (`ID`); UNIQUE `uk_provider_method` (`provider`, `provider_method_ref`); ÍNDICE `user_ID` (`user_ID`); ÍNDICE `payment_method_type_ID` (`payment_method_type_ID`); FK `tbd_user_payment_methods_ibfk_1` (`user_ID`) → `tb_users` (`ID`); FK `tbd_user_payment_methods_ibfk_2` (`payment_method_type_ID`) → `tbc_payment_methods_types` (`ID`)
-**Relaciones:** `tbd_user_payment_methods_ibfk_1`: `tbd_user_payment_methods` (user_ID) → `tb_users` (ID); `tbd_user_payment_methods_ibfk_2`: `tbd_user_payment_methods` (payment_method_type_ID) → `tbc_payment_methods_types` (ID)
+**Restricciones/índices:** PK (`ID`); UNIQUE `uk_provider_method` (`provider`, `provider_method_ref`); ÍNDICE `user_ID` (`user_ID`); ÍNDICE `payment_method_type_ID` (`payment_method_type_ID`); FK `tbd_user_payment_methods_ibfk_1` (`user_ID`) → `tb_users` (`ID`); FK `tbd_user_payment_methods_ibfk_2` (`payment_method_type_ID`) → `tbc_payment_methods_types` (`ID`); CHECK `chk_user_pm_last_four`: `(((`last_four` is null) or regexp_like(`last_four`,'^[0-9]{4}$')))`
+**Relaciones:** `tbd_user_payment_methods_ibfk_1`: `tbd_user_payment_methods` (user_ID) → `tb_users` (ID); `tbd_user_payment_methods_ibfk_2`: `tbd_user_payment_methods` (payment_method_type_ID) → `tbc_payment_methods_types` (ID); Tabla hija `tb_payments` mediante `fk_payment_user_method`
 **Triggers asociados:** `trg_tbd_user_payment_methods_after_insert`, `trg_tbd_user_payment_methods_after_update`, `trg_tbd_user_payment_methods_after_delete`
 
 ### `tbd_users_wishlist_products`
@@ -614,7 +617,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ### Relaciones N:M mediante tablas de asociación
 
-- `tbd_cart_items` resuelve la relación entre `tb_carts` y `tbd_products_users_providers`.
+- `tbd_cart_items` resuelve la relación entre `tbd_products_users_providers` y `tb_carts`.
 - `tbd_products_categories` resuelve la relación entre `tbc_categories` y `tb_products`.
 - `tbd_products_users_providers` resuelve la relación entre `tb_products` y `tb_users`.
 - `tbd_users_wishlist_products` resuelve la relación entre `tb_products` y `tb_users`.
@@ -623,13 +626,13 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 | Vista | Propósito | Tablas base | Columnas expuestas |
 |---|---|---|---|
+| `vw_available_products` | Vista de reporte con agregaciones sobre las tablas base. | `tb_products`, `tbd_products_users_providers` | `product_ID`, `sku`, `name`, `current_price`, `current_stock`, `provider_ID`, `type_ownership` |
 | `vw_trazabilidad_address_components` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_buyer_orders` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_cancellation_items` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_cart_items` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_carts` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_categorias` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
-| `vw_trazabilidad_logs` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_order_cancellations` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_order_items` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
 | `vw_trazabilidad_orders` | Consulta trazable de los registros de auditoría de `tb_logs` filtrados por entidad. | `tb_logs` | `ID`, `table_name`, `operation`, `db_user`, `description`, `operation_date`, `operation_status` |
@@ -720,6 +723,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 | `trg_tbd_cancellation_items_after_insert` | `tbd_cancellation_items` | INSERT | AFTER | Sí (Create) |
 | `trg_tbd_cancellation_items_after_update` | `tbd_cancellation_items` | UPDATE | AFTER | Sí (Update) |
 | `trg_tbd_cancellation_items_after_delete` | `tbd_cancellation_items` | DELETE | AFTER | Sí (Delete) |
+| `trg_tbd_cart_items_before_insert` | `tbd_cart_items` | INSERT | BEFORE | No |
 | `trg_tbd_cart_items_after_insert` | `tbd_cart_items` | INSERT | AFTER | Sí (Create) |
 | `trg_tbd_cart_items_after_update` | `tbd_cart_items` | UPDATE | AFTER | Sí (Update) |
 | `trg_tbd_cart_items_after_delete` | `tbd_cart_items` | DELETE | AFTER | Sí (Delete) |
@@ -729,7 +733,7 @@ Registros por tabla (según los `INSERT` del respaldo):
 | `trg_tbd_products_categories_after_insert` | `tbd_products_categories` | INSERT | AFTER | Sí (Create) |
 | `trg_tbd_products_categories_after_update` | `tbd_products_categories` | UPDATE | AFTER | Sí (Update) |
 | `trg_tbd_products_categories_after_delete` | `tbd_products_categories` | DELETE | AFTER | Sí (Delete) |
-| `trg_products_users_providers_after_insert` | `tbd_products_users_providers` | INSERT | AFTER | Sí |
+| `trg_products_users_providers_after_insert` | `tbd_products_users_providers` | INSERT | AFTER | Sí (Create) |
 | `trg_products_users_providers_after_update` | `tbd_products_users_providers` | UPDATE | AFTER | Sí (Update) |
 | `trg_products_users_providers_after_delete` | `tbd_products_users_providers` | DELETE | AFTER | Sí (Delete) |
 | `trg_tbd_return_items_after_insert` | `tbd_return_items` | INSERT | AFTER | Sí (Create) |
@@ -744,13 +748,85 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 ## Procedimientos almacenados
 
-### `sp_register_user_with_person`
+### `sp_authorize_payment`
 
-**Parámetros:** `-- Parámetros para tb_users IN p_email VARCHAR(80)`; `IN p_nickname VARCHAR(100)`; `IN p_password VARCHAR(255)`; `-- Parámetros para tb_people IN p_courtesy_title VARCHAR(20)`; `IN p_given_names VARCHAR(150)`; `IN p_family_names VARCHAR(150)`; `IN p_birth_date DATE`; `IN p_gender_id TINYINT UNSIGNED`; `IN p_country_code CHAR(2)`; `IN p_phone VARCHAR(25`
+**Parámetros:** `IN p_payment_id INT UNSIGNED`
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_payment_transaction`, `tb_payments`
+
+**Ejemplo:** `CALL sp_authorize_payment(/* p_payment_id */);`
+
+### `sp_bulk_insert_full_users`
+
+**Parámetros:** `IN p_total INT`
+
+**Tablas consultadas/modificadas:** `tb_persons`, `tb_users`
+
+**Ejemplo:** `CALL sp_bulk_insert_full_users(/* p_total */);`
+
+### `sp_bulk_insert_persons`
+
+**Parámetros:** `IN p_total INT`; `IN p_start_user_id INT`
+
+**Tablas consultadas/modificadas:** `tb_persons`
+
+**Ejemplo:** `CALL sp_bulk_insert_persons(/* p_total */, /* p_start_user_id */);`
+
+### `sp_bulk_insert_users`
+
+**Parámetros:** `IN p_total INT`
+
+**Tablas consultadas/modificadas:** `tb_users`
+
+**Ejemplo:** `CALL sp_bulk_insert_users(/* p_total */);`
+
+### `sp_create_order_from_cart`
+
+**Parámetros:** `IN p_user_id INT`; `OUT p_order_id INT UNSIGNED`
+
+**Tablas consultadas/modificadas:** `tb_carts`, `tb_orders`, `tb_products`, `tbd_buyer_orders`, `tbd_cart_items`, `tbd_order_items`, `tbd_products_users_providers`
+
+**Ejemplo:** `CALL sp_create_order_from_cart(/* p_user_id */, /* p_order_id */);`
+
+### `sp_deliver_order`
+
+**Parámetros:** `IN p_order_id INT UNSIGNED`
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_shipments`, `tbd_buyer_orders`
+
+**Ejemplo:** `CALL sp_deliver_order(/* p_order_id */);`
+
+### `sp_generate_bulk_users`
+
+**Parámetros:** `IN p_total INT`; `IN p_forced_country VARCHAR(5)`; `IN p_min_age INT`; `IN p_max_age INT`; `IN p_active_ratio INT`
 
 **Tablas consultadas/modificadas:** `tb_people`, `tb_users`
 
-**Ejemplo:** `CALL sp_register_user_with_person(/* -- */, /* p_nickname */, /* p_password */, /* -- */, /* p_given_names */, /* p_family_names */, /* p_birth_date */, /* p_gender_id */, /* p_country_code */, /* p_phone */);`
+**Ejemplo:** `CALL sp_generate_bulk_users(/* p_total */, /* p_forced_country */, /* p_min_age */, /* p_max_age */, /* p_active_ratio */);`
+
+### `sp_process_order`
+
+**Parámetros:** `IN p_order_id INT UNSIGNED`
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_shipments`, `tb_user_addresses`, `tbd_address_components`, `tbd_buyer_orders`
+
+**Ejemplo:** `CALL sp_process_order(/* p_order_id */);`
+
+### `sp_register_payment`
+
+**Parámetros:** `IN p_order_id INT UNSIGNED`; `IN p_user_payment_method_id BIGINT UNSIGNED`; `OUT p_payment_id INT UNSIGNED`
+
+**Tablas consultadas/modificadas:** `tb_orders`, `tb_payment_methods`, `tb_payments`, `tbc_payment_methods_types`, `tbd_user_payment_methods`
+
+**Ejemplo:** `CALL sp_register_payment(/* p_order_id */, /* p_user_payment_method_id */, /* p_payment_id */);`
+
+### `sp_register_user_with_person`
+
+**Parámetros:** `IN p_email VARCHAR(80)`; `IN p_nickname VARCHAR(100)`; `IN p_password VARCHAR(255)`; `IN p_courtesy_title VARCHAR(20)`; `IN p_given_names VARCHAR(150)`; `IN p_family_names VARCHAR(150)`; `IN p_birth_date DATE`; `IN p_gender_id TINYINT UNSIGNED`; `IN p_country_code CHAR(2)`; `IN p_phone VARCHAR(25)`
+
+**Tablas consultadas/modificadas:** `tb_people`, `tb_users`
+
+**Ejemplo:** `CALL sp_register_user_with_person(/* p_email */, /* p_nickname */, /* p_password */, /* p_courtesy_title */, /* p_given_names */, /* p_family_names */, /* p_birth_date */, /* p_gender_id */, /* p_country_code */, /* p_phone */);`
 
 ### `sp_restore_product`
 
@@ -791,6 +867,18 @@ Registros por tabla (según los `INSERT` del respaldo):
 **Ejemplo:** `CALL sp_soft_delete_user(/* p_user_id */);`
 
 ## Funciones almacenadas
+
+### `fn_get_phone_by_country`
+
+**Parámetros:** `p_country_code VARCHAR(5)`
+
+**Retorna:** `varchar(20) CHARSET utf8mb4`
+
+### `fn_get_random_birth_date`
+
+**Parámetros:** `p_min_age INT`; `p_max_age INT`
+
+**Retorna:** `date`
 
 ### `fn_simulate_birthdate`
 
@@ -861,8 +949,6 @@ Registros por tabla (según los `INSERT` del respaldo):
 
 - **Alta:** `sp_register_user_with_person` aplica MD5 a la contraseña; MD5 no es adecuado para almacenar contraseñas. Recomendación: Argon2id, bcrypt o scrypt con sal.
 - **Media:** `tb_products`, `tb_users` tienen más de un trigger para el mismo evento y momento; pueden duplicar el historial en `tb_logs`.
-- **Media:** `tbd_cart_items` referencia por separado `provider_ID` y `product_ID` a `tbd_products_users_providers`; dos FK independientes no garantizan que el par exista como vínculo.
-- **Media:** `tbd_order_items` referencia por separado `provider_ID` y `product_ID` a `tbd_products_users_providers`; dos FK independientes no garantizan que el par exista como vínculo.
 - **Baja:** posible vista duplicada: `vw_total_products_by_category1`.
 
 ## Pendientes por confirmar

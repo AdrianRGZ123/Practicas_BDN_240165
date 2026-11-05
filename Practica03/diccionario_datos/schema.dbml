@@ -1,16 +1,18 @@
 Project db_test {
   database_type: "MySQL"
-  Note: "Generado desde Respaldo 28-10-26.sql (MySQL 8.0.42)"
+  Note: "Generado desde Respaldo 29-10-26.sql (MySQL 8.0.42)"
 }
 
 Table tb_carts {
   ID int unsigned [pk, not null, increment]
   user_ID int [not null]
   status bit(1) [default: b'1']
+  active_user_ID int
   creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   last_update datetime [default: 'NULL']
   Indexes {
-    (user_ID) [unique, name: 'uk_cart_user']
+    (active_user_ID) [unique, name: 'uk_cart_active_user']
+    (user_ID) [name: 'idx_cart_user']
   }
 }
 Table tb_logs {
@@ -48,12 +50,13 @@ Table tb_orders {
   key varchar(40) [not null]
   User_ID int [not null]
   total_products int [not null]
-  total_cost decimal(10,3) [not null, default: '0.000']
+  total_cost decimal(12,2) [not null, default: '0.00']
   status_string enum('Registered','Payed','Canceled','Delivered','Devolved','Attended','Sended') [not null, default: 'Registered']
   status bit(1) [default: b'1']
   creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   last_update datetime [default: 'NULL']
   Indexes {
+    (key) [unique, name: 'uk_orders_key']
     (User_ID) [name: 'fk_user_2_idx']
   }
 }
@@ -97,6 +100,7 @@ Table tb_payments {
   ID int unsigned [pk, not null, increment]
   order_ID int unsigned [not null]
   payment_method_ID int unsigned [not null]
+  user_payment_method_ID bigint unsigned [default: 'NULL']
   amount decimal(10,2) [not null]
   currency char(3) [not null, default: 'MXN']
   payment_status enum('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded') [not null, default: 'Pending']
@@ -109,6 +113,7 @@ Table tb_payments {
     (provider, provider_reference) [unique, name: 'uk_payment_provider_reference']
     (order_ID) [name: 'idx_payment_order']
     (payment_method_ID) [name: 'fk_payment_method']
+    (user_payment_method_ID) [name: 'idx_payment_user_method']
   }
 }
 Table tb_people {
@@ -303,6 +308,7 @@ Table tbd_address_components {
 }
 Table tbd_buyer_orders {
   ID int unsigned [pk, not null, increment]
+  order_ID int unsigned [not null]
   seller_ID int [not null]
   subtotal decimal(12,2) [not null, default: '0.00']
   shipping_cost decimal(12,2) [not null, default: '0.00']
@@ -311,6 +317,7 @@ Table tbd_buyer_orders {
   creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   last_update datetime [default: 'NULL']
   Indexes {
+    (order_ID, seller_ID) [unique, name: 'uk_buyer_orders_order_seller']
     (seller_ID) [name: 'seller_ID']
   }
 }
@@ -334,11 +341,12 @@ Table tbd_cart_items {
   Indexes {
     (provider_ID) [name: 'provider_ID']
     (product_ID) [name: 'product_ID']
+    (provider_ID, product_ID) [name: 'idx_cart_items_provider_product']
   }
 }
 Table tbd_order_items {
   ID int unsigned [pk, not null, increment]
-  seller_order_ID int unsigned [not null]
+  buyer_order_ID int unsigned [not null]
   product_ID int unsigned [not null]
   provider_ID int [not null]
   product_name varchar(255) [not null]
@@ -347,9 +355,10 @@ Table tbd_order_items {
   subtotal decimal(12,2)
   creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   Indexes {
-    (seller_order_ID) [name: 'seller_order_ID']
+    (buyer_order_ID) [name: 'idx_order_items_buyer_order']
     (product_ID) [name: 'product_ID']
     (provider_ID) [name: 'provider_ID']
+    (provider_ID, product_ID) [name: 'idx_order_items_provider_product']
   }
 }
 Table tbd_products_categories {
@@ -419,7 +428,7 @@ Table tbd_users_wishlist_products {
   }
 }
 
-Ref: tb_carts.user_ID - tb_users.ID
+Ref: tb_carts.user_ID > tb_users.ID
 Ref: tb_order_cancellations.buyer_order_ID > tbd_buyer_orders.ID
 Ref: tb_order_cancellations.order_ID > tb_orders.ID
 Ref: tb_order_cancellations.requested_by_user_ID > tb_users.ID
@@ -428,6 +437,7 @@ Ref: tb_payment_transaction.payment_ID > tb_payments.ID
 Ref: tb_payment_transaction.(refund_ID, payment_ID) > tb_refunds.(ID, payment_ID)
 Ref: tb_payments.payment_method_ID > tb_payment_methods.ID
 Ref: tb_payments.order_ID > tb_orders.ID
+Ref: tb_payments.user_payment_method_ID > tbd_user_payment_methods.ID
 Ref: tb_people.user_ID - tb_users.ID
 Ref: tb_refunds.cancellation_ID > tb_order_cancellations.ID
 Ref: tb_refunds.payment_ID > tb_payments.ID
@@ -442,15 +452,14 @@ Ref: tb_user_addresses.user_ID > tb_users.ID
 Ref: tbc_categories.sup_id_category > tbc_categories.ID
 Ref: tbd_address_components.address_ID > tb_user_addresses.ID
 Ref: tbd_address_components.(address_ID, address_sup_ID) > tbd_address_components.(address_ID, ID)
+Ref: tbd_buyer_orders.order_ID > tb_orders.ID
 Ref: tbd_buyer_orders.seller_ID > tb_users.ID
 Ref: tbd_cancellation_items.cancellation_ID > tb_order_cancellations.ID
 Ref: tbd_cancellation_items.order_item_ID > tbd_order_items.ID
+Ref: tbd_cart_items.(provider_ID, product_ID) > tbd_products_users_providers.(user_ID, product_ID)
 Ref: tbd_cart_items.cart_ID > tb_carts.ID
-Ref: tbd_cart_items.provider_ID > tbd_products_users_providers.user_ID
-Ref: tbd_cart_items.product_ID > tbd_products_users_providers.product_ID
-Ref: tbd_order_items.seller_order_ID > tb_seller_orders.ID
-Ref: tbd_order_items.product_ID > tbd_products_users_providers.product_ID
-Ref: tbd_order_items.provider_ID > tbd_products_users_providers.user_ID
+Ref: tbd_order_items.buyer_order_ID > tbd_buyer_orders.ID
+Ref: tbd_order_items.(provider_ID, product_ID) > tbd_products_users_providers.(user_ID, product_ID)
 Ref: tbd_products_categories.category_ID > tbc_categories.ID
 Ref: tbd_products_categories.product_ID > tb_products.id
 Ref: tbd_products_users_providers.product_ID > tb_products.id

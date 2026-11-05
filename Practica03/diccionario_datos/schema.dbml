@@ -1,14 +1,14 @@
 Project db_test {
   database_type: "MySQL"
-  Note: "Dump indica MySQL 8.0.42"
+  Note: "Generado desde Respaldo 28-10-26.sql (MySQL 8.0.42)"
 }
 
 Table tb_carts {
   ID int unsigned [pk, not null, increment]
-  user_ID int [ref, not null]
+  user_ID int [not null]
   status bit(1) [default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: NULL]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
   Indexes {
     (user_ID) [unique, name: 'uk_cart_user']
   }
@@ -19,22 +19,111 @@ Table tb_logs {
   operation enum('Create','Read','Update','Delete') [not null]
   db_user varchar(80) [not null]
   description text [not null]
-  operation_date datetime [not null, default: CURRENT_TIMESTAMP]
+  operation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   operation_status bit(1) [default: b'1']
+}
+Table tb_order_cancellations {
+  ID int unsigned [pk, not null, increment]
+  order_ID int unsigned [default: 'NULL']
+  buyer_order_ID int unsigned [default: 'NULL']
+  requested_by_user_ID int [default: 'NULL']
+  cancellation_scope enum('WholeOrder','SellerOrder','Items') [not null, default: 'WholeOrder']
+  reason_code varchar(60) [default: 'NULL']
+  reason_detail varchar(1000) [default: 'NULL']
+  cancellation_status enum('Requested','Approved','Rejected','Completed') [not null, default: 'Requested']
+  requested_at datetime [not null, default: 'CURRENT_TIMESTAMP']
+  reviewed_at datetime [default: 'NULL']
+  completed_at datetime [default: 'NULL']
+  internal_notes varchar(1000) [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (order_ID) [name: 'idx_cancellations_order']
+    (buyer_order_ID) [name: 'idx_cancellations_buyer_order']
+    (requested_by_user_ID) [name: 'idx_cancellations_requester']
+  }
+}
+Table tb_orders {
+  ID int unsigned [pk, not null, increment]
+  key varchar(40) [not null]
+  User_ID int [not null]
+  total_products int [not null]
+  total_cost decimal(10,3) [not null, default: '0.000']
+  status_string enum('Registered','Payed','Canceled','Delivered','Devolved','Attended','Sended') [not null, default: 'Registered']
+  status bit(1) [default: b'1']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (User_ID) [name: 'fk_user_2_idx']
+  }
+}
+Table tb_payment_methods {
+  ID int unsigned [pk, not null, increment]
+  name varchar(60) [not null]
+  description varchar(255) [default: 'NULL']
+  status bit(1) [not null, default: b'1']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (name) [unique, name: 'uk_payment_method_name']
+  }
+}
+Table tb_payment_transaction {
+  ID int unsigned [pk, not null, increment]
+  payment_ID int unsigned [not null]
+  refund_ID int unsigned [default: 'NULL']
+  transaction_type enum('Authorization','Capture','Charge','Void','Refund','Chargeback','Adjustment') [not null]
+  transaction_status enum('Pending','Succeeded','Failed') [not null, default: 'Pending']
+  amount decimal(10,2) [not null]
+  currency char(3) [not null, default: 'MXN']
+  provider varchar(60) [default: 'NULL']
+  provider_transaction_id varchar(150) [default: 'NULL']
+  idempotency_key varchar(100) [default: 'NULL']
+  response_code varchar(100) [default: 'NULL']
+  response_message varchar(500) [default: 'NULL']
+  request_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  response_date datetime [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (provider, provider_transaction_id) [unique, name: 'uk_payment_transaction_provider_ref']
+    (provider, idempotency_key) [unique, name: 'uk_payment_transaction_idempotency']
+    (payment_ID) [name: 'idx_payment_transaction_payment']
+    (refund_ID) [name: 'idx_payment_transaction_refund']
+    (refund_ID, payment_ID) [name: 'fk_payment_transaction_refund_payment']
+  }
+}
+Table tb_payments {
+  ID int unsigned [pk, not null, increment]
+  order_ID int unsigned [not null]
+  payment_method_ID int unsigned [not null]
+  amount decimal(10,2) [not null]
+  currency char(3) [not null, default: 'MXN']
+  payment_status enum('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded') [not null, default: 'Pending']
+  provider varchar(60) [default: 'NULL']
+  provider_reference varchar(150) [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  paid_date datetime [default: 'NULL']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (provider, provider_reference) [unique, name: 'uk_payment_provider_reference']
+    (order_ID) [name: 'idx_payment_order']
+    (payment_method_ID) [name: 'fk_payment_method']
+  }
 }
 Table tb_people {
   person_ID bigint unsigned [pk, not null, increment]
-  user_ID int [ref, default: NULL]
-  courtesy_title varchar(20) [default: NULL]
+  user_ID int [default: 'NULL']
+  courtesy_title varchar(20) [default: 'NULL']
   given_names varchar(150) [not null]
-  family_names varchar(150) [default: NULL]
-  birth_date date [default: NULL]
-  gender_ID tinyint unsigned [default: NULL]
-  country_code char(2) [default: NULL]
-  phone varchar(25) [default: NULL]
+  family_names varchar(150) [default: 'NULL']
+  birth_date date [default: 'NULL']
+  gender_ID tinyint unsigned [default: 'NULL']
+  country_code char(2) [default: 'NULL']
+  phone varchar(25) [default: 'NULL']
   status bit(1) [default: b'1']
-  creation_date datetime [default: CURRENT_TIMESTAMP]
-  last_update datetime [default: CURRENT_TIMESTAMP]
+  creation_date datetime [default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'CURRENT_TIMESTAMP']
   Indexes {
     (user_ID) [unique, name: 'user_ID']
   }
@@ -47,38 +136,115 @@ Table tb_products {
   current_price decimal(10,2) [not null, default: '0.00']
   current_stock int unsigned [not null, default: '0']
   status bit(1) [default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [not null, default: CURRENT_TIMESTAMP]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [not null, default: 'CURRENT_TIMESTAMP']
   Indexes {
     (sku) [unique, name: 'sku']
   }
 }
+Table tb_refunds {
+  ID int unsigned [pk, not null, increment]
+  payment_ID int unsigned [not null]
+  cancellation_ID int unsigned [default: 'NULL']
+  return_ID int unsigned [default: 'NULL']
+  reason enum('Cancellation','Return','Adjustment','Goodwill') [not null]
+  amount decimal(10,2) [not null]
+  currency char(3) [not null, default: 'MXN']
+  refund_status enum('Pending','Submitted','Succeeded','Failed','Canceled') [not null, default: 'Pending']
+  provider varchar(60) [default: 'NULL']
+  provider_reference varchar(150) [default: 'NULL']
+  requested_by_user_ID int [default: 'NULL']
+  reason_detail varchar(1000) [default: 'NULL']
+  requested_at datetime [not null, default: 'CURRENT_TIMESTAMP']
+  processed_at datetime [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (ID, payment_ID) [unique, name: 'uk_refunds_id_payment']
+    (provider, provider_reference) [unique, name: 'uk_refunds_provider_reference']
+    (payment_ID) [name: 'idx_refunds_payment']
+    (cancellation_ID) [name: 'idx_refunds_cancellation']
+    (return_ID) [name: 'idx_refunds_return']
+    (requested_by_user_ID) [name: 'idx_refunds_requester']
+  }
+}
+Table tb_returns {
+  ID int unsigned [pk, not null, increment]
+  buyer_order_ID int unsigned [not null]
+  requested_by_user_ID int [default: 'NULL']
+  reason_code varchar(60) [default: 'NULL']
+  reason_detail varchar(1000) [default: 'NULL']
+  return_status enum('Requested','Authorized','Rejected','LabelCreated','InTransit','Received','Inspected','Approved','PartiallyApproved','Refunded','Closed') [not null, default: 'Requested']
+  return_carrier varchar(100) [default: 'NULL']
+  return_tracking_number varchar(150) [default: 'NULL']
+  requested_at datetime [not null, default: 'CURRENT_TIMESTAMP']
+  authorized_at datetime [default: 'NULL']
+  received_at datetime [default: 'NULL']
+  closed_at datetime [default: 'NULL']
+  internal_notes varchar(1000) [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (buyer_order_ID) [name: 'idx_returns_buyer_order']
+    (requested_by_user_ID) [name: 'idx_returns_requester']
+    (return_carrier, return_tracking_number) [name: 'idx_returns_tracking']
+  }
+}
 Table tb_seller_orders {
   ID int unsigned [pk, not null, increment]
-  seller_ID int [ref, not null]
+  seller_ID int [not null]
   subtotal decimal(12,2) [not null, default: '0.00']
   shipping_cost decimal(12,2) [not null, default: '0.00']
   fulfillment_status enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned') [not null, default: 'Pending']
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: NULL]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
   Indexes {
     (seller_ID) [name: 'seller_ID']
   }
 }
+Table tb_shipments {
+  ID int unsigned [pk, not null, increment]
+  buyer_order_ID int unsigned [not null]
+  address_ID bigint unsigned [default: 'NULL']
+  recipient_name varchar(150) [default: 'NULL']
+  recipient_phone varchar(25) [default: 'NULL']
+  address_line_1 varchar(255) [default: 'NULL']
+  address_line_2 varchar(255) [default: 'NULL']
+  city varchar(120) [default: 'NULL']
+  state_region varchar(120) [default: 'NULL']
+  postal_code varchar(20) [default: 'NULL']
+  country_code char(2) [default: 'NULL']
+  carrier varchar(100) [default: 'NULL']
+  service_level varchar(100) [default: 'NULL']
+  tracking_number varchar(150) [default: 'NULL']
+  tracking_url varchar(500) [default: 'NULL']
+  shipment_status enum('Pending','LabelCreated','ReadyToShip','InTransit','OutForDelivery','Delivered','DeliveryFailed','Lost','Returned') [not null, default: 'Pending']
+  shipping_cost decimal(12,2) [not null, default: '0.00']
+  shipped_at datetime [default: 'NULL']
+  estimated_delivery_at datetime [default: 'NULL']
+  delivered_at datetime [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (buyer_order_ID) [name: 'idx_shipments_buyer_order']
+    (address_ID) [name: 'idx_shipments_address']
+    (carrier, tracking_number) [name: 'idx_shipments_tracking']
+  }
+}
 Table tb_user_addresses {
   ID bigint unsigned [pk, not null, increment]
-  user_ID int [ref, not null]
+  user_ID int [not null]
   address_label varchar(100) [not null]
-  recipient_name varchar(150) [default: NULL]
-  recipient_phone varchar(25) [default: NULL]
-  delivery_instructions varchar(500) [default: NULL]
-  latitude decimal(10,7) [default: NULL]
-  longitude decimal(10,7) [default: NULL]
+  recipient_name varchar(150) [default: 'NULL']
+  recipient_phone varchar(25) [default: 'NULL']
+  delivery_instructions varchar(500) [default: 'NULL']
+  latitude decimal(10,7) [default: 'NULL']
+  longitude decimal(10,7) [default: 'NULL']
   is_default tinyint(1) [not null, default: '0']
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: NULL]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
   Indexes {
     (user_ID) [name: 'idx_user_addresses']
   }
@@ -88,9 +254,9 @@ Table tb_users {
   email varchar(80) [not null]
   nickname varchar(100) [not null]
   password varchar(255) [not null]
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: CURRENT_TIMESTAMP]
-  last_login datetime [default: NULL]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'CURRENT_TIMESTAMP']
+  last_login datetime [default: 'NULL']
   status bit(1) [not null, default: b'1']
   Indexes {
     (email) [unique, name: 'email']
@@ -101,9 +267,9 @@ Table tbc_categories {
   ID int unsigned [pk, not null, increment]
   name varchar(120) [not null]
   description text
-  sup_id_category int unsigned [ref, default: NULL]
+  sup_id_category int unsigned [default: 'NULL']
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   last_update datetime [not null]
   Indexes {
     (name) [unique, name: 'name']
@@ -115,32 +281,56 @@ Table tbc_payment_methods_types {
   code varchar(30) [not null]
   description text [not null]
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: NULL]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
   Indexes {
     (code) [unique, name: 'code_UNIQUE']
   }
 }
 Table tbd_address_components {
   ID bigint unsigned [pk, not null, increment]
-  address_ID bigint unsigned [ref, not null]
+  address_ID bigint unsigned [not null]
   value varchar(255) [not null]
   component_type varchar(50) [not null]
   status bit(1) [not null, default: b'1']
-  address_sup_ID bigint unsigned [ref, default: NULL]
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: NULL]
+  address_sup_ID bigint unsigned [default: 'NULL']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
   Indexes {
     (address_ID, ID) [unique, name: 'uk_address_component']
     (address_ID, address_sup_ID) [name: 'idx_address_parent']
   }
 }
+Table tbd_buyer_orders {
+  ID int unsigned [pk, not null, increment]
+  seller_ID int [not null]
+  subtotal decimal(12,2) [not null, default: '0.00']
+  shipping_cost decimal(12,2) [not null, default: '0.00']
+  fulfillment_status enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned') [not null, default: 'Pending']
+  status bit(1) [not null, default: b'1']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (seller_ID) [name: 'seller_ID']
+  }
+}
+Table tbd_cancellation_items {
+  ID int unsigned [pk, not null, increment]
+  cancellation_ID int unsigned [not null]
+  order_item_ID int unsigned [not null]
+  quantity int unsigned [not null]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  Indexes {
+    (cancellation_ID, order_item_ID) [unique, name: 'uk_cancellation_order_item']
+    (order_item_ID) [name: 'idx_cancellation_items_order_item']
+  }
+}
 Table tbd_cart_items {
-  cart_ID int unsigned [pk, ref, not null]
-  provider_ID int [pk, ref, not null]
-  product_ID int unsigned [pk, ref, not null]
+  cart_ID int unsigned [pk, not null]
+  provider_ID int [pk, not null]
+  product_ID int unsigned [pk, not null]
   quantity int unsigned [not null, default: '1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   Indexes {
     (provider_ID) [name: 'provider_ID']
     (product_ID) [name: 'product_ID']
@@ -148,14 +338,14 @@ Table tbd_cart_items {
 }
 Table tbd_order_items {
   ID int unsigned [pk, not null, increment]
-  seller_order_ID int unsigned [ref, not null]
-  product_ID int unsigned [ref, not null]
-  provider_ID int [ref, not null]
+  seller_order_ID int unsigned [not null]
+  product_ID int unsigned [not null]
+  provider_ID int [not null]
   product_name varchar(255) [not null]
   quantity int unsigned [not null]
   unit_price decimal(12,2) [not null]
-  subtotal decimal(12,2) [note: 'generated stored as (`quantity` * `unit_price`)']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
+  subtotal decimal(12,2)
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   Indexes {
     (seller_order_ID) [name: 'seller_order_ID']
     (product_ID) [name: 'product_ID']
@@ -163,39 +353,55 @@ Table tbd_order_items {
   }
 }
 Table tbd_products_categories {
-  category_ID int unsigned [pk, ref, not null]
-  product_ID int unsigned [pk, ref, not null]
+  category_ID int unsigned [pk, not null]
+  product_ID int unsigned [pk, not null]
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   last_update datetime [not null]
   Indexes {
     (product_ID) [name: 'fk_product']
   }
 }
 Table tbd_products_users_providers {
-  user_ID int [pk, ref, not null]
-  product_ID int unsigned [pk, ref, not null]
-  type_ownership enum('Owner','Reseller','Distributor') [default: NULL]
+  user_ID int [pk, not null]
+  product_ID int unsigned [pk, not null]
+  type_ownership enum('Owner','Reseller','Distributor') [default: 'NULL']
   status bit(1) [not null, default: b'1']
   available_date datetime [not null]
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [not null, default: CURRENT_TIMESTAMP]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [not null, default: 'CURRENT_TIMESTAMP']
   Indexes {
     (product_ID) [name: 'fk_products2']
   }
 }
+Table tbd_return_items {
+  ID int unsigned [pk, not null, increment]
+  return_ID int unsigned [not null]
+  order_item_ID int unsigned [not null]
+  quantity int unsigned [not null]
+  item_condition enum('Unopened','Unused','Used','Damaged','Defective','Other') [default: 'NULL']
+  disposition enum('Pending','Restock','Repair','Dispose','SupplierReturn') [not null, default: 'Pending']
+  approved_refund_amount decimal(12,2) [not null, default: '0.00']
+  item_status enum('Requested','Approved','Rejected','Received','Refunded') [not null, default: 'Requested']
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
+  Indexes {
+    (return_ID, order_item_ID) [unique, name: 'uk_return_order_item']
+    (order_item_ID) [name: 'idx_return_items_order_item']
+  }
+}
 Table tbd_user_payment_methods {
   ID bigint unsigned [pk, not null, increment]
-  user_ID int [ref, not null]
-  payment_method_type_ID int unsigned [ref, not null]
+  user_ID int [not null]
+  payment_method_type_ID int unsigned [not null]
   provider varchar(60) [not null]
   provider_method_ref varchar(255) [not null]
-  label varchar(100) [default: NULL]
-  last_four char(4) [default: NULL]
+  label varchar(100) [default: 'NULL']
+  last_four char(4) [default: 'NULL']
   is_default tinyint(1) [not null, default: '0']
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
-  last_update datetime [default: NULL]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
+  last_update datetime [default: 'NULL']
   Indexes {
     (provider, provider_method_ref) [unique, name: 'uk_provider_method']
     (user_ID) [name: 'user_ID']
@@ -203,22 +409,42 @@ Table tbd_user_payment_methods {
   }
 }
 Table tbd_users_wishlist_products {
-  user_ID int [pk, ref, not null]
-  product_ID int unsigned [pk, ref, not null]
+  user_ID int [pk, not null]
+  product_ID int unsigned [pk, not null]
   status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: CURRENT_TIMESTAMP]
+  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
   last_update datetime [not null]
   Indexes {
     (product_ID) [name: 'fk_products3']
   }
 }
-Ref: tb_carts.user_ID > tb_users.ID
-Ref: tb_people.user_ID > tb_users.ID
+
+Ref: tb_carts.user_ID - tb_users.ID
+Ref: tb_order_cancellations.buyer_order_ID > tbd_buyer_orders.ID
+Ref: tb_order_cancellations.order_ID > tb_orders.ID
+Ref: tb_order_cancellations.requested_by_user_ID > tb_users.ID
+Ref: tb_orders.User_ID > tb_users.ID
+Ref: tb_payment_transaction.payment_ID > tb_payments.ID
+Ref: tb_payment_transaction.(refund_ID, payment_ID) > tb_refunds.(ID, payment_ID)
+Ref: tb_payments.payment_method_ID > tb_payment_methods.ID
+Ref: tb_payments.order_ID > tb_orders.ID
+Ref: tb_people.user_ID - tb_users.ID
+Ref: tb_refunds.cancellation_ID > tb_order_cancellations.ID
+Ref: tb_refunds.payment_ID > tb_payments.ID
+Ref: tb_refunds.requested_by_user_ID > tb_users.ID
+Ref: tb_refunds.return_ID > tb_returns.ID
+Ref: tb_returns.buyer_order_ID > tbd_buyer_orders.ID
+Ref: tb_returns.requested_by_user_ID > tb_users.ID
 Ref: tb_seller_orders.seller_ID > tb_users.ID
+Ref: tb_shipments.address_ID > tb_user_addresses.ID
+Ref: tb_shipments.buyer_order_ID > tbd_buyer_orders.ID
 Ref: tb_user_addresses.user_ID > tb_users.ID
 Ref: tbc_categories.sup_id_category > tbc_categories.ID
-Ref: tbd_address_components.address_ID > tb_user_addresses.ID [delete: restrict]
-Ref: tbd_address_components.(address_ID, address_sup_ID) > tbd_address_components.(address_ID, ID) [delete: restrict]
+Ref: tbd_address_components.address_ID > tb_user_addresses.ID
+Ref: tbd_address_components.(address_ID, address_sup_ID) > tbd_address_components.(address_ID, ID)
+Ref: tbd_buyer_orders.seller_ID > tb_users.ID
+Ref: tbd_cancellation_items.cancellation_ID > tb_order_cancellations.ID
+Ref: tbd_cancellation_items.order_item_ID > tbd_order_items.ID
 Ref: tbd_cart_items.cart_ID > tb_carts.ID
 Ref: tbd_cart_items.provider_ID > tbd_products_users_providers.user_ID
 Ref: tbd_cart_items.product_ID > tbd_products_users_providers.product_ID
@@ -229,6 +455,8 @@ Ref: tbd_products_categories.category_ID > tbc_categories.ID
 Ref: tbd_products_categories.product_ID > tb_products.id
 Ref: tbd_products_users_providers.product_ID > tb_products.id
 Ref: tbd_products_users_providers.user_ID > tb_users.ID
+Ref: tbd_return_items.order_item_ID > tbd_order_items.ID
+Ref: tbd_return_items.return_ID > tb_returns.ID
 Ref: tbd_user_payment_methods.user_ID > tb_users.ID
 Ref: tbd_user_payment_methods.payment_method_type_ID > tbc_payment_methods_types.ID
 Ref: tbd_users_wishlist_products.product_ID > tb_products.id

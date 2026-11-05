@@ -170,6 +170,8 @@ a:hover { text-decoration: underline; }
 /* ---------- modelo E-R ---------- */
 .er-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .er-head h2 { margin: 0; font-family: var(--display); font-size: 1.35rem; letter-spacing: .05em; color: #fff; }
+.er-search { padding: 6px 12px; font: inherit; font-size: .8rem; color: var(--text); background: rgba(255,255,255,.04); border: 1px solid var(--line); border-radius: 999px; min-width: 200px; outline: none; }
+.er-search:focus { border-color: var(--line-strong); }
 .er-tools { display: flex; gap: 8px; flex-wrap: wrap; }
 .er-note { color: var(--muted); font-size: .88rem; margin: 0 0 14px; }
 .legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: .8rem; color: var(--muted); }
@@ -280,6 +282,8 @@ async function init() {
       <p>Documento original: <a href="${FILES.md}">diccionario_datos.md</a></p></div></div>`;
     return;
   }
+  window.ROWS = {};
+  (md.match(/## Resumen ejecutivo[\s\S]*?(?=\n## )/) || [""])[0].replace(/\|\s*`(\w+)`\s*\|\s*([\d\s]+)\s*\|/g, (_, t, n) => { ROWS[t] = parseInt(n.replace(/\s/g, ""), 10); });
   buildStats(md);
   buildPanels(md, mmd);
   route();
@@ -356,6 +360,8 @@ function buildPanels(md, mmd) {
   erEl.innerHTML = `<div class="card">
     <div class="er-head"><h2>Modelo entidad-relación</h2>
       <div class="er-tools">
+        <input id="erSearch" class="er-search" type="search" list="erList" placeholder="Buscar tabla…" autocomplete="off" aria-label="Buscar tabla en el diagrama">
+        <datalist id="erList"></datalist>
         <button class="chip" data-z="in" title="Acercar">＋ Zoom</button>
         <button class="chip" data-z="out" title="Alejar">－ Zoom</button>
         <button class="chip" data-z="fit" title="Ajustar a la pantalla">⤢ Ajustar</button>
@@ -595,6 +601,13 @@ function renderEr(src) {
     g.appendChild(el("path", { d: `M0 ${HH} V9 a9 9 0 0 1 9 -9 H${BW - 9} a9 9 0 0 1 9 9 V${HH} Z`, fill: c, opacity: .16 }));
     g.appendChild(el("line", { x1: 0, y1: HH, x2: BW, y2: HH, stroke: c, "stroke-opacity": .5 }));
     g.appendChild(el("text", { x: 14, y: 21, fill: c, "font-weight": 700, "font-size": 14 }, n));
+    const cnt = (window.ROWS || {})[n];
+    if (cnt != null) {
+      const label = cnt.toLocaleString("es-MX") + (cnt === 1 ? " fila" : " filas");
+      const w = label.length * 6.4 + 14;
+      g.appendChild(el("rect", { x: BW - w - 8, y: 7, width: w, height: 18, rx: 9, fill: c, opacity: cnt ? .22 : .08 }));
+      g.appendChild(el("text", { x: BW - 8 - w / 2, y: 20, fill: cnt ? "#fff" : "#8a9bc2", "font-size": 10.5, "font-weight": 700, "text-anchor": "middle" }, label));
+    }
     e.rows.forEach((r, i) => {
       const y = HH + i * RH;
       if (i % 2) g.appendChild(el("rect", { x: 1, y, width: BW - 2, height: RH, fill: "#ffffff", opacity: .035 }));
@@ -626,10 +639,33 @@ async function initEr(src) {
     const l = $("#erLoading"); if (l) l.remove();
     er.w = W; er.h = H; er.ready = true;
     bindEr();
+    bindErSearch();
     if ($("#p-er").classList.contains("active")) erFit();
   } catch (e) {
     $("#erView").innerHTML = `<div class="er-error"><b>No se pudo dibujar el diagrama.</b><br>${String(e.message || e)}<br><br>Código fuente: <a href="${FILES.mmd}">diagrama_er.mmd</a></div>`;
   }
+}
+
+function bindErSearch() {
+  const q = $("#erSearch"), ents = $$("#erStage .ent");
+  $("#erList").innerHTML = ents.map(g => `<option value="${g.dataset.n}">`).join("");
+  const run = center => {
+    const t = q.value.trim().toLowerCase();
+    const hits = [];
+    ents.forEach(g => { const ok = !t || g.dataset.n.toLowerCase().includes(t); g.style.opacity = ok ? "" : ".12"; if (t && ok) hits.push(g); });
+    $$("#erStage .edge").forEach(x => { x.style.opacity = t && !hits.some(g => g.dataset.n === x.dataset.a || g.dataset.n === x.dataset.b) ? ".05" : ""; });
+    if (center && hits.length) {
+      const g = hits.find(h => h.dataset.n.toLowerCase() === t) || hits[0];
+      const m = /translate\(([\d.]+),([\d.]+)\)/.exec(g.getAttribute("transform"));
+      const v = $("#erView").getBoundingClientRect();
+      er.k = Math.min(1.1, Math.max(er.k, .7));
+      er.x = v.width / 2 - (+m[1] + BW / 2) * er.k; er.y = v.height / 2 - (+m[2] + 60) * er.k;
+      apply();
+    }
+  };
+  q.addEventListener("input", () => run(ents.some(g => g.dataset.n.toLowerCase() === q.value.trim().toLowerCase())));
+  q.addEventListener("keydown", e => { if (e.key === "Enter") run(true); });
+  q.addEventListener("search", () => { run(false); if (!q.value) erFit(); });
 }
 
 function apply() { $("#erStage").style.transform = `translate(${er.x}px, ${er.y}px) scale(${er.k})`; }

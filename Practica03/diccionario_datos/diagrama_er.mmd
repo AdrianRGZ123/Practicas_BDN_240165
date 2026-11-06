@@ -6,7 +6,7 @@ erDiagram
     tb_users ||--o{ tb_orders : "User_ID"
     tb_payments ||--o{ tb_payment_transaction : "payment_ID"
     tb_refunds ||--o{ tb_payment_transaction : "refund_ID, payment_ID"
-    tb_payment_methods ||--o{ tb_payments : "payment_method_ID"
+    tbc_payment_methods_types ||--o{ tb_payments : "payment_method_ID"
     tb_orders ||--o{ tb_payments : "order_ID"
     tbd_user_payment_methods ||--o{ tb_payments : "user_payment_method_ID"
     tb_users ||--|| tb_people : "user_ID"
@@ -16,7 +16,6 @@ erDiagram
     tb_returns ||--o{ tb_refunds : "return_ID"
     tbd_buyer_orders ||--o{ tb_returns : "buyer_order_ID"
     tb_users ||--o{ tb_returns : "requested_by_user_ID"
-    tb_users ||--o{ tb_seller_orders : "seller_ID"
     tb_user_addresses ||--o{ tb_shipments : "address_ID"
     tbd_buyer_orders ||--o{ tb_shipments : "buyer_order_ID"
     tb_users ||--o{ tb_user_addresses : "user_ID"
@@ -81,14 +80,6 @@ erDiagram
         int total_products
         decimal_12_2 total_cost
         enum__Registered___Payed___Canceled___Delivered___Devolved___Attended___Sended status_string
-        bit_1 status
-        datetime creation_date
-        datetime last_update
-    }
-    tb_payment_methods {
-        int_unsigned ID PK
-        varchar_60 name
-        varchar_255 description
         bit_1 status
         datetime creation_date
         datetime last_update
@@ -182,16 +173,6 @@ erDiagram
         datetime received_at
         datetime closed_at
         varchar_1000 internal_notes
-        datetime creation_date
-        datetime last_update
-    }
-    tb_seller_orders {
-        int_unsigned ID PK
-        int seller_ID FK
-        decimal_12_2 subtotal
-        decimal_12_2 shipping_cost
-        enum__Pending___Accepted___Preparing___Sent___Delivered___Canceled___Returned fulfillment_status
-        bit_1 status
         datetime creation_date
         datetime last_update
     }

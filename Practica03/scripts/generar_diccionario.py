@@ -108,6 +108,11 @@ for m in re.finditer(r"/\*!50001 VIEW `(\w+)` AS (select .*?)\*/;", sql, re.S | 
 for n in re.findall(r"CREATE VIEW `(\w+)` AS SELECT", sql):   # por si alguna no tiene definicion final
     views.setdefault(n, dict(name=n, base=[], cols=[], body=""))
 
+# ---------------------------------------------------------------- eventos
+events = []
+for m in re.finditer(r"EVENT `(\w+)` ON SCHEDULE (.*?) ON COMPLETION (NOT PRESERVE|PRESERVE) (ENABLE|DISABLE)(?: COMMENT '([^']*)')? DO (.*?) \*/ ;;", sql, re.S):
+    events.append(dict(name=m.group(1), schedule=m.group(2), status=m.group(4), comment=m.group(5) or "", body=re.sub(r"\s+", " ", m.group(6))))
+
 # ---------------------------------------------------------------- rutinas
 routines = []
 for m in re.finditer(r"CREATE DEFINER=`[^`]+`@`[^`]+` (PROCEDURE|FUNCTION) `(\w+)`\((.*?)\)(\s*RETURNS [^\n]+)?\n(?=\s*(?:NO SQL|DETERMINISTIC|READS|MODIFIES|CONTAINS|BEGIN|SQL SECURITY|COMMENT))(.*?)END ;;", sql, re.S):
@@ -197,12 +202,12 @@ L = []; A = L.append
 A("# Diccionario de datos — `db_test`\n")
 A(f"> Fuente: `{fname}`. Generado automáticamente desde el DDL del respaldo (MySQL {ver}, volcado {dumped}). Los conteos de registros se obtuvieron contando las sentencias `INSERT` del mismo respaldo; no se reproducen datos.\n")
 A("## Índice\n")
-for i, s in enumerate(["Resumen ejecutivo", "Tablas y columnas", "Vistas", "Triggers", "Procedimientos almacenados", "Funciones almacenadas", "Dominios y convenciones", "Observaciones de diseño", "Pendientes por confirmar"], 1):
+for i, s in enumerate(["Resumen ejecutivo", "Tablas y columnas", "Vistas", "Triggers", "Procedimientos almacenados", "Funciones almacenadas", "Eventos programados", "Dominios y convenciones", "Observaciones de diseño", "Pendientes por confirmar"], 1):
     A(f"{i}. [{s}](#{s.lower().replace(' ', '-').replace('í','i').replace('ó','o')})")
 procs = [r for r in routines if r["kind"] == "PROCEDURE"]; funcs = [r for r in routines if r["kind"] == "FUNCTION"]
 A("\n## Resumen ejecutivo\n")
 A("| Elemento | Conteo |\n|---|---:|")
-for k, v in [("Tablas", len(tables)), ("Vistas", len(views)), ("Triggers", len(triggers)), ("Procedimientos", len(procs)), ("Funciones", len(funcs)), ("Relaciones FK", len(rels))]:
+for k, v in [("Tablas", len(tables)), ("Vistas", len(views)), ("Triggers", len(triggers)), ("Procedimientos", len(procs)), ("Funciones", len(funcs)), ("Eventos", len(events)), ("Relaciones FK", len(rels))]:
     A(f"| {k} | {v} |")
 A("\nRegistros por tabla (según los `INSERT` del respaldo):\n")
 A("| Tabla | Registros |\n|---|---:|")
@@ -260,6 +265,13 @@ for r in funcs:
     A("**Parámetros:** " + ("; ".join(f"`{p}`" for p in r["params"]) or "Ninguno") + "\n")
     A(f"**Retorna:** `{r['ret'].replace('RETURNS','').strip()}`\n")
 
+A("## Eventos programados\n")
+A("| Evento | Programación | Estado | Descripción | Sentencia |\n|---|---|---|---|---|")
+for e in events:
+    A(f"| `{e['name']}` | {esc(e['schedule'])} | {e['status']} | {esc(e['comment'])} | `{esc(e['body'][:160])}` |")
+if not events:
+    A("| — | — | — | No hay eventos definidos. | — |")
+A("")
 A("## Dominios y convenciones\n")
 A("**ENUM y campos de estado:**")
 for t in tables.values():
@@ -368,12 +380,13 @@ def sheet(title, header, rows):
         w = max(len(str(c.value or "")) for c in col)
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = min(60, max(10, w + 2))
         for c in col: c.alignment = Alignment(wrap_text=True, vertical="top")
-sheet("Resumen", ["Métrica", "Valor"], [("Base de datos", "db_test"), ("Fuente", fname), ("Versión MySQL", ver), ("Tablas", len(tables)), ("Vistas", len(views)), ("Triggers", len(triggers)), ("Procedimientos", len(procs)), ("Funciones", len(funcs)), ("Relaciones FK", len(rels))])
+sheet("Resumen", ["Métrica", "Valor"], [("Base de datos", "db_test"), ("Fuente", fname), ("Versión MySQL", ver), ("Tablas", len(tables)), ("Vistas", len(views)), ("Triggers", len(triggers)), ("Procedimientos", len(procs)), ("Funciones", len(funcs)), ("Eventos", len(events)), ("Relaciones FK", len(rels))])
 sheet("Tablas", ["Tabla", "Prefijo/tipo", "Motor", "Charset", "Collation", "Registros", "Columnas"], [(t["name"], PREF_TXT[prefix(t["name"])], t["engine"], t["charset"], t["collation"], t["rows"], len(t["cols"])) for t in tables.values()])
 sheet("Columnas", ["Tabla", "#", "Columna", "Tipo", "¿Acepta NULL?", "Valor por defecto", "Extras", "Llave", "Descripción"], [(t["name"], i, c["name"], c["type"], "SÍ" if c["null"] else "NO", dflt(c), "; ".join(c["extras"]), keyname(c), describe(t, c)) for t in tables.values() for i, c in enumerate(t["cols"], 1)])
 sheet("Relaciones", ["Constraint", "Tabla hija", "Columnas", "Tabla padre", "Columnas padre", "Cardinalidad"], [(r["name"], r["child"], ", ".join(r["cols"]), r["parent"], ", ".join(r["rcols"]), "1:1" if r["one"] else "1:N") for r in rels])
 sheet("Vistas", ["Vista", "Tablas base", "Columnas"], [(v["name"], ", ".join(v["base"]), ", ".join(v["cols"])) for v in views.values()])
 sheet("Triggers", ["Trigger", "Tabla", "Evento", "Momento", "Registra en tb_logs"], [(x["name"], x["table"], x["event"], x["when"], "Sí" if x["logs"] else "No") for x in triggers])
+sheet("Eventos", ["Evento", "Programación", "Estado", "Descripción"], [(e["name"], e["schedule"], e["status"], e["comment"]) for e in events])
 sheet("Rutinas", ["Tipo", "Nombre", "Parámetros", "Tablas tocadas", "Invoca"], [(r["kind"], r["name"], "; ".join(r["params"]), ", ".join(r["touched"]), ", ".join(r["calls"])) for r in routines])
 wb.save(os.path.join(OUT, "diccionario_datos.xlsx"))
 

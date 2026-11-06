@@ -1,6 +1,6 @@
 # Diccionario de datos de `db_test`
 
-Documentación derivada de `Respaldo 29-10-26.sql` (MySQL 8.0.42). Se procesaron definiciones DDL y se contaron las filas de los `INSERT`; no se incluyen datos.
+Documentación derivada de `Respaldo 29-10-26 (corregido).sql` (MySQL 8.0.42). Se procesaron definiciones DDL y se contaron las filas de los `INSERT`; no se incluyen datos.
 
 ## Archivos
 
@@ -11,4 +11,4 @@ Documentación derivada de `Respaldo 29-10-26.sql` (MySQL 8.0.42). Se procesaron
 
 ## Resumen ejecutivo
 
-El DDL contiene 27 tablas, 29 vistas, 85 triggers, 15 procedimientos y 6 funciones. Se regenera con `Practica03/scripts/generar_diccionario.py`.
+El DDL contiene 25 tablas, 25 vistas, 72 triggers, 10 procedimientos y 5 funciones. Se regenera con `Practica03/scripts/generar_diccionario.py`.

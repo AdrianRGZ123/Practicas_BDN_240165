@@ -259,7 +259,7 @@ const FILES = {
   dbml: BASE + "schema.dbml",
   mmd: BASE + "diagrama_er.mmd"
 };
-const ICONS = { resumen: "◈", er: "⬡", tablas: "▦", vistas: "◫", triggers: "⚡", procedimientos: "⚙", funciones: "ƒ", dominios: "◇", observaciones: "⚠", pendientes: "☐", archivos: "⇩" };
+const ICONS = { eventos: "⏱", resumen: "◈", er: "⬡", tablas: "▦", vistas: "◫", triggers: "⚡", procedimientos: "⚙", funciones: "ƒ", dominios: "◇", observaciones: "⚠", pendientes: "☐", archivos: "⇩" };
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const slug = t => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -301,6 +301,7 @@ function buildStats(md) {
     ["Triggers", val("Triggers"), "--amber"],
     ["Procedimientos", val("Procedimientos"), "--green"],
     ["Funciones", val("Funciones"), "--cyan"],
+    ["Eventos", val("Eventos"), "--pink"],
     ["Usuarios insertados masivamente", val("Usuarios insertados masivamente"), "--pink", true]
   ].filter(i => i[1] != null);
   const box = $("#stats");
@@ -335,7 +336,7 @@ function buildPanels(md, mmd) {
   sections.forEach(s => {
     const id = slug(s.title);
     if (id === "indice" || id.startsWith("diagrama")) return;
-    const key = ["tablas", "vistas", "triggers", "procedimientos", "funciones", "dominios", "observaciones", "pendientes", "resumen"].find(k => id.startsWith(k)) || id.split("-")[0];
+    const key = ["tablas", "vistas", "triggers", "procedimientos", "funciones", "eventos", "dominios", "observaciones", "pendientes", "resumen"].find(k => id.startsWith(k)) || id.split("-")[0];
     panels.push({ id: key, title: s.title, nodes: s.nodes });
   });
 
@@ -343,7 +344,7 @@ function buildPanels(md, mmd) {
   main.innerHTML = "";
   const nav = $("#nav");
   nav.innerHTML = "<h4>Navegación</h4>";
-  const order = ["resumen", "er", "tablas", "vistas", "triggers", "procedimientos", "funciones", "dominios", "observaciones", "pendientes", "archivos"];
+  const order = ["resumen", "er", "tablas", "vistas", "triggers", "procedimientos", "funciones", "eventos", "dominios", "observaciones", "pendientes", "archivos"];
   const built = {};
 
   panels.forEach(p => {
@@ -417,6 +418,7 @@ function addSectionCounts(nav, built) {
   count("triggers", "tbody tr");
   count("procedimientos", "h3");
   count("funciones", "tbody tr");
+  count("eventos", "tbody tr");
 }
 
 /* ---------- tablas: índice de chips y detalle ampliado opcional ---------- */

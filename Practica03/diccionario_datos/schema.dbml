@@ -1,6 +1,6 @@
 Project db_test {
   database_type: "MySQL"
-  Note: "Generado desde Respaldo 29-10-26.sql (MySQL 8.0.42)"
+  Note: "Generado desde Respaldo 29-10-26 (corregido).sql (MySQL 8.0.42)"
 }
 
 Table tb_carts {
@@ -58,17 +58,6 @@ Table tb_orders {
   Indexes {
     (key) [unique, name: 'uk_orders_key']
     (User_ID) [name: 'fk_user_2_idx']
-  }
-}
-Table tb_payment_methods {
-  ID int unsigned [pk, not null, increment]
-  name varchar(60) [not null]
-  description varchar(255) [default: 'NULL']
-  status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
-  last_update datetime [default: 'NULL']
-  Indexes {
-    (name) [unique, name: 'uk_payment_method_name']
   }
 }
 Table tb_payment_transaction {
@@ -193,19 +182,6 @@ Table tb_returns {
     (buyer_order_ID) [name: 'idx_returns_buyer_order']
     (requested_by_user_ID) [name: 'idx_returns_requester']
     (return_carrier, return_tracking_number) [name: 'idx_returns_tracking']
-  }
-}
-Table tb_seller_orders {
-  ID int unsigned [pk, not null, increment]
-  seller_ID int [not null]
-  subtotal decimal(12,2) [not null, default: '0.00']
-  shipping_cost decimal(12,2) [not null, default: '0.00']
-  fulfillment_status enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned') [not null, default: 'Pending']
-  status bit(1) [not null, default: b'1']
-  creation_date datetime [not null, default: 'CURRENT_TIMESTAMP']
-  last_update datetime [default: 'NULL']
-  Indexes {
-    (seller_ID) [name: 'seller_ID']
   }
 }
 Table tb_shipments {
@@ -435,7 +411,7 @@ Ref: tb_order_cancellations.requested_by_user_ID > tb_users.ID
 Ref: tb_orders.User_ID > tb_users.ID
 Ref: tb_payment_transaction.payment_ID > tb_payments.ID
 Ref: tb_payment_transaction.(refund_ID, payment_ID) > tb_refunds.(ID, payment_ID)
-Ref: tb_payments.payment_method_ID > tb_payment_methods.ID
+Ref: tb_payments.payment_method_ID > tbc_payment_methods_types.ID
 Ref: tb_payments.order_ID > tb_orders.ID
 Ref: tb_payments.user_payment_method_ID > tbd_user_payment_methods.ID
 Ref: tb_people.user_ID - tb_users.ID
@@ -445,7 +421,6 @@ Ref: tb_refunds.requested_by_user_ID > tb_users.ID
 Ref: tb_refunds.return_ID > tb_returns.ID
 Ref: tb_returns.buyer_order_ID > tbd_buyer_orders.ID
 Ref: tb_returns.requested_by_user_ID > tb_users.ID
-Ref: tb_seller_orders.seller_ID > tb_users.ID
 Ref: tb_shipments.address_ID > tb_user_addresses.ID
 Ref: tb_shipments.buyer_order_ID > tbd_buyer_orders.ID
 Ref: tb_user_addresses.user_ID > tb_users.ID

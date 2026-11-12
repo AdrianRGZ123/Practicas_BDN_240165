@@ -1,0 +1,18 @@
+mysql: [Warning] Using a password on the command line interface can be insecure.
++------------------+------------------+
+| usuario_conexion | rol_activo       |
++------------------+------------------+
+| adrian.rios@%    | `superadmin`@`%` |
++------------------+------------------+
++---------------------------------------+
+| resultado                             |
++---------------------------------------+
+| ORDEN ATENDIDA: inventario descontado |
++---------------------------------------+
++----+---------------+----------------+------------+--------------------+
+| ID | status_string | total_products | total_cost | fulfillment_status |
++----+---------------+----------------+------------+--------------------+
+|  3 | Attended      |             20 |   18957.84 | Preparing          |
+|  3 | Attended      |             20 |   18957.84 | Preparing          |
+|  3 | Attended      |             20 |   18957.84 | Preparing          |
++----+---------------+----------------+------------+--------------------+

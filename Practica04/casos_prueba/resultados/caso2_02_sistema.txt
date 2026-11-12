@@ -1,0 +1,43 @@
+mysql: [Warning] Using a password on the command line interface can be insecure.
++------------------+------------------+
+| usuario_conexion | rol_activo       |
++------------------+------------------+
+| adrian.rios@%    | `superadmin`@`%` |
++------------------+------------------+
++--------------------+---------+----------------+------------------+--------------------+---------------+------------------------------+
+| installment_number | amount  | payment_status | transaction_type | transaction_status | response_code | response_message             |
++--------------------+---------+----------------+------------------+--------------------+---------------+------------------------------+
+|                  1 | 6960.53 | Paid           | Authorization    | Succeeded          | 00            | Aprobada                     |
+|                  1 | 6960.53 | Paid           | Capture          | Succeeded          | 00            | Cargo aplicado               |
+|                  2 | 6960.53 | Paid           | Authorization    | Succeeded          | 00            | Aprobada                     |
+|                  2 | 6960.53 | Paid           | Capture          | Succeeded          | 00            | Cargo aplicado               |
+|                  3 | 6960.53 | Paid           | Authorization    | Succeeded          | 00            | Aprobada                     |
+|                  3 | 6960.53 | Paid           | Capture          | Succeeded          | 00            | Cargo aplicado               |
+|                  4 | 6960.53 | Paid           | Authorization    | Succeeded          | 00            | Aprobada                     |
+|                  4 | 6960.53 | Paid           | Capture          | Succeeded          | 00            | Cargo aplicado               |
+|                  5 | 6960.53 | Paid           | Authorization    | Succeeded          | 00            | Aprobada                     |
+|                  5 | 6960.53 | Paid           | Capture          | Succeeded          | 00            | Cargo aplicado               |
+|                  6 | 6960.54 | Failed         | Authorization    | Failed             | 51            | Límite excedido de crédito   |
++--------------------+---------+----------------+------------------+--------------------+---------------+------------------------------+
++---------------------------------------+
+| resultado                             |
++---------------------------------------+
+| ORDEN ATENDIDA: inventario descontado |
++---------------------------------------+
++----+---------------+----------------+------------+
+| ID | status_string | total_products | total_cost |
++----+---------------+----------------+------------+
+|  2 | Sended        |             28 |   41763.19 |
++----+---------------+----------------+------------+
++----------+---------------+-----------+-----------------+---------------------------+----------------+-------------------+-------------+---------------------+
+| order_ID | status_string | seller_ID | shipment_status | address_line_1            | address_line_2 | city              | postal_code | delivered_at        |
++----------+---------------+-----------+-----------------+---------------------------+----------------+-------------------+-------------+---------------------+
+|        2 | Delivered     |        10 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        15 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        16 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        17 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        23 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        24 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        28 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
+|        2 | Delivered     |        30 | Delivered       | Calle Londres 247 Int. 3B | Juárez         | Ciudad de México  | 06600       | 2026-11-11 23:22:46 |
++----------+---------------+-----------+-----------------+---------------------------+----------------+-------------------+-------------+---------------------+

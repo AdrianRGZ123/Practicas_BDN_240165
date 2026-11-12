@@ -149,6 +149,29 @@ REVOKE IF EXISTS INSERT, UPDATE ON db_test.tb_payment_transaction FROM 'buyer';
 REVOKE IF EXISTS SELECT, INSERT, UPDATE ON db_test.tb_seller_orders FROM 'seller';
 
 
+/* -------------------------
+   PRÁCTICA 04: PROCEDIMIENTOS, VISTAS Y TABLAS DEL FLUJO COMPLETO
+   Los procedimientos que escriben tablas sin privilegio directo se ejecutan
+   con los permisos del definidor (SQL SECURITY DEFINER); sp_register_address
+   es SQL SECURITY INVOKER y usa los privilegios propios del rol.
+   Los pasos del sistema (autorizar pago, atender, enviar, entregar, reembolsar,
+   reenviar) los ejecuta adrian.rios (superadmin) / admin; no se otorgan a
+   los roles de la aplicación.
+   ------------------------- */
+GRANT EXECUTE ON PROCEDURE db_test.sp_register_address        TO 'user_not_registered', 'buyer';
+GRANT EXECUTE ON PROCEDURE db_test.sp_set_order_address       TO 'user_not_registered', 'buyer';
+GRANT EXECUTE ON PROCEDURE db_test.sp_request_item_cancellation TO 'buyer';
+GRANT EXECUTE ON PROCEDURE db_test.sp_request_return          TO 'buyer';
+GRANT SELECT ON db_test.vw_cart_to_order        TO 'user_not_registered', 'buyer';
+GRANT SELECT ON db_test.vw_user_addresses_full  TO 'user_not_registered', 'buyer';
+GRANT SELECT ON db_test.vw_order_detail         TO 'user_not_registered', 'buyer';
+GRANT SELECT ON db_test.tb_gift_coupons         TO 'buyer';
+GRANT SELECT ON db_test.tb_order_cancellations  TO 'buyer';
+GRANT SELECT ON db_test.tbd_cancellation_items  TO 'buyer';
+GRANT SELECT ON db_test.tb_refunds              TO 'buyer';
+GRANT SELECT ON db_test.tb_returns              TO 'buyer';
+GRANT SELECT ON db_test.tbd_return_items        TO 'buyer';
+
 /* ============================================================
    5. PERMISOS ESPECÍFICOS DIRECTOS
    ============================================================ */

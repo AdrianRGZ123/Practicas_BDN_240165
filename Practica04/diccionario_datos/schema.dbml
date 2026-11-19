@@ -1,0 +1,704 @@
+Project db_test {
+  database_type: "MySQL"
+  Note: "Práctica 04 - Procesos de simulación de compra. Esquema generado desde db_test (MySQL 8.0.42) el 18-11-2026. Convención: tb_ maestras/transaccionales, tbc_ catálogos, tbd_ detalle y asociativas."
+}
+
+enum tb_gift_coupons_coupon_status {
+  "Available"
+  "Used"
+  "Expired"
+}
+
+enum tb_logs_operation {
+  "Create"
+  "Read"
+  "Update"
+  "Delete"
+}
+
+enum tb_order_cancellations_cancellation_scope {
+  "WholeOrder"
+  "SellerOrder"
+  "Items"
+}
+
+enum tb_order_cancellations_cancellation_status {
+  "Requested"
+  "Approved"
+  "Rejected"
+  "Completed"
+}
+
+enum tb_orders_status_string {
+  "Registered"
+  "Payed"
+  "Canceled"
+  "Delivered"
+  "Devolved"
+  "Attended"
+  "Sended"
+}
+
+enum tb_payment_transaction_transaction_type {
+  "Authorization"
+  "Capture"
+  "Charge"
+  "Void"
+  "Refund"
+  "Chargeback"
+  "Adjustment"
+}
+
+enum tb_payment_transaction_transaction_status {
+  "Pending"
+  "Succeeded"
+  "Failed"
+}
+
+enum tb_payments_payment_status {
+  "Pending"
+  "Authorized"
+  "Paid"
+  "Failed"
+  "Refunded"
+  "PartiallyRefunded"
+}
+
+enum tb_refunds_reason {
+  "Cancellation"
+  "Return"
+  "Adjustment"
+  "Goodwill"
+}
+
+enum tb_refunds_refund_status {
+  "Pending"
+  "Submitted"
+  "Succeeded"
+  "Failed"
+  "Canceled"
+}
+
+enum tb_returns_return_status {
+  "Requested"
+  "Authorized"
+  "Rejected"
+  "LabelCreated"
+  "InTransit"
+  "Received"
+  "Inspected"
+  "Approved"
+  "PartiallyApproved"
+  "Refunded"
+  "Closed"
+}
+
+enum tb_seller_orders_fulfillment_status {
+  "Pending"
+  "Accepted"
+  "Preparing"
+  "Sent"
+  "Delivered"
+  "Canceled"
+  "Returned"
+}
+
+enum tb_shipments_shipment_status {
+  "Pending"
+  "LabelCreated"
+  "ReadyToShip"
+  "InTransit"
+  "OutForDelivery"
+  "Delivered"
+  "DeliveryFailed"
+  "Lost"
+  "Returned"
+  "AtPickupPoint"
+  "PickedUp"
+}
+
+enum tbd_buyer_orders_fulfillment_status {
+  "Pending"
+  "Accepted"
+  "Preparing"
+  "Sent"
+  "Delivered"
+  "Canceled"
+  "Returned"
+}
+
+enum tbd_products_users_providers_type_ownership {
+  "Owner"
+  "Reseller"
+  "Distributor"
+}
+
+enum tbd_return_items_item_condition {
+  "Unopened"
+  "Unused"
+  "Used"
+  "Damaged"
+  "Defective"
+  "Other"
+}
+
+enum tbd_return_items_disposition {
+  "Pending"
+  "Restock"
+  "Repair"
+  "Dispose"
+  "SupplierReturn"
+}
+
+enum tbd_return_items_item_status {
+  "Requested"
+  "Approved"
+  "Rejected"
+  "Received"
+  "Refunded"
+}
+
+Table tb_carts {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  user_ID int [not null, note: 'Identificador del usuario (tb_users.ID) dueño del registro.']
+  status bit(1) [default: `b'1'`, note: '1 = carrito activo; 0 = carrito convertido en orden o inactivo.']
+  active_user_ID int [unique, note: 'Columna generada: copia user_ID solo si el carrito está activo, NULL si no; su UNIQUE garantiza un único carrito activo por usuario.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    user_ID [name: 'idx_cart_user']
+  }
+  Note: 'Carrito de compra. Cada usuario puede tener varios carritos a lo largo del tiempo, pero solo uno activo (status = 1); al generarse la orden el carrito se cierra.'
+}
+
+Table tb_gift_coupons {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  code varchar(30) [not null, unique, note: 'Código único del cupón que el usuario captura o vincula como método de pago.']
+  amount decimal(10,2) [not null, note: 'Saldo del cupón en pesos; CHECK > 0. Debe cubrir el total de la orden.']
+  coupon_status tb_gift_coupons_coupon_status [not null, default: 'Available', note: 'Available, Used o Expired.']
+  user_ID int [note: 'Usuario al que pertenece el cupón; NULL si es transferible.']
+  order_ID int [note: 'Orden en la que está aplicado; NULL si está disponible.']
+  times_reassigned int [not null, default: 0, note: 'Veces que el cupón volvió a estar disponible tras cancelarse la orden donde se usó.']
+  used_at datetime [note: 'Fecha y hora de aplicación del cupón; NULL si está disponible.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    order_ID [name: 'idx_coupon_order']
+    user_ID [name: 'idx_coupon_user']
+  }
+  Note: 'Cupones de regalo prepagados. Un cupón aplicado a una orden pasa a Used; si la orden se cancela se libera y se reasigna al usuario.'
+}
+
+Table tb_logs {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  table_name varchar(100) [not null, note: 'Tabla afectada por la operación auditada.']
+  operation tb_logs_operation [not null, note: 'Create, Read, Update o Delete.']
+  db_user varchar(80) [not null, note: 'Usuario del SGBD (USER()) que ejecutó la operación.']
+  description text [not null, note: 'Detalle del cambio auditado.']
+  operation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora de la operación.']
+  operation_status bit(1) [default: `b'1'`, note: '1 = operación exitosa.']
+  Note: 'Bitácora de auditoría alimentada por triggers: tabla, operación, usuario del SGBD y descripción del cambio.'
+}
+
+Table tb_order_cancellations {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  order_ID int [note: 'Orden cancelada por completo (scope WholeOrder); NULL en otros alcances.']
+  buyer_order_ID int [note: 'Suborden afectada (scope SellerOrder o Items); NULL en WholeOrder.']
+  requested_by_user_ID int [note: 'Usuario (tb_users.ID) que solicitó el trámite; NULL cuando lo genera el sistema.']
+  cancellation_scope tb_order_cancellations_cancellation_scope [not null, default: 'WholeOrder', note: 'Alcance: WholeOrder, SellerOrder o Items (CHECK de coherencia con los dos campos anteriores).']
+  reason_code varchar(60) [note: 'Código corto del motivo (por ejemplo OUT_OF_STOCK, CHANGED_MIND, DAMAGED_ON_ARRIVAL).']
+  reason_detail varchar(1000) [note: 'Explicación libre del motivo capturada por el solicitante.']
+  cancellation_status tb_order_cancellations_cancellation_status [not null, default: 'Requested', note: 'Requested, Approved, Rejected o Completed.']
+  requested_at datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se solicitó el trámite.']
+  reviewed_at datetime [note: 'Fecha y hora de la revisión por el sistema o personal.']
+  completed_at datetime [note: 'Fecha y hora en que concluyó (incluido el reembolso).']
+  internal_notes varchar(1000) [note: 'Notas internas del personal sobre el trámite; no se muestran al cliente.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    buyer_order_ID [name: 'idx_cancellations_buyer_order']
+    order_ID [name: 'idx_cancellations_order']
+    requested_by_user_ID [name: 'idx_cancellations_requester']
+  }
+  Note: 'Solicitudes de cancelación de una orden completa, de una suborden o de productos específicos.'
+}
+
+Table tb_orders {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental de la orden de compra.']
+  key varchar(40) [not null, unique, note: 'Folio de negocio único de la orden con el formato ORD-AAAAMMDDhhmmss-<cart_ID>.']
+  User_ID int [not null, note: 'Comprador (tb_users.ID) dueño de la orden.']
+  cart_ID int [unique, note: 'Carrito (tb_carts.ID) del que se originó la orden; UNIQUE: un carrito genera como máximo una orden.']
+  shipping_address_ID bigint [note: 'Domicilio de envío (tb_user_addresses.ID) elegido para la orden; NULL hasta que el comprador lo asigna.']
+  total_products int [not null, note: 'Total de unidades vigentes de la orden; se reduce con cancelaciones parciales.']
+  total_cost decimal(12,2) [not null, default: 0.00, note: 'Importe total vigente de la orden en pesos (12,2); se reduce con cancelaciones parciales.']
+  status_string tb_orders_status_string [not null, default: 'Registered', note: 'Estado del ciclo de compra: Registered, Payed, Attended, Sended, Delivered, Canceled o Devolved.']
+  status bit(1) [default: `b'1'`, note: 'Baja lógica de la orden: 1 activa, 0 inactiva.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última transición de estado; la asignan los procedimientos del flujo de compra.']
+  Indexes {
+    User_ID [name: 'fk_user_2_idx']
+    shipping_address_ID [name: 'idx_orders_address']
+  }
+  Note: 'Cabecera de la orden de compra generada a partir de un carrito (cart_ID, relación 1 a 1). Concentra totales, estado del ciclo de compra y domicilio de envío elegido.'
+}
+
+Table tb_payment_methods {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  name varchar(60) [not null, unique, note: 'Nombre único de la forma de pago (Tarjeta de crédito, Efectivo, Cupón de regalo...).']
+  type_ID int [note: 'Tipo (tbc_payment_methods_types.ID) al que pertenece la forma de pago.']
+  description varchar(255) [note: 'Texto descriptivo libre del registro.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    type_ID [name: 'fk_payment_methods_type']
+  }
+  Note: 'Formas de pago del catálogo comercial que se ligan a cada cobro; cada una pertenece a un tipo de tbc_payment_methods_types.'
+}
+
+Table tb_payment_transaction {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  payment_ID int [not null, note: 'Cobro (tb_payments.ID) asociado.']
+  refund_ID int [note: 'Reembolso (tb_refunds.ID) cuando transaction_type = Refund (CHECK); con payment_ID forma FK compuesta.']
+  transaction_type tb_payment_transaction_transaction_type [not null, note: 'Tipo de movimiento: Authorization, Capture, Charge, Void, Refund, Chargeback o Adjustment.']
+  transaction_status tb_payment_transaction_transaction_status [not null, default: 'Pending', note: 'Resultado: Pending, Succeeded o Failed.']
+  amount decimal(10,2) [not null, note: 'Monto monetario del movimiento, en la moneda indicada (por defecto MXN), con dos decimales; debe ser mayor que cero.']
+  currency char(3) [not null, default: 'MXN', note: 'Código de moneda ISO 4217 de tres letras; por defecto MXN.']
+  provider varchar(60) [note: 'Nombre del proveedor del servicio financiero o pasarela que procesa el movimiento (por ejemplo BancoSim, Spin).']
+  provider_transaction_id varchar(150) [note: 'Identificador de la transacción asignado por el proveedor; UNIQUE con provider.']
+  idempotency_key varchar(100) [note: 'Clave de idempotencia que impide procesar dos veces la misma operación; UNIQUE con provider.']
+  response_code varchar(100) [note: 'Código de respuesta del proveedor (00 = aprobada, 51 = fondos/límite insuficiente).']
+  response_message varchar(500) [note: 'Mensaje de respuesta del proveedor (por ejemplo Límite excedido de crédito).']
+  request_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se envió la solicitud al proveedor.']
+  response_date datetime [note: 'Fecha y hora en que respondió el proveedor.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    (refund_ID, payment_ID) [name: 'fk_payment_transaction_refund_payment']
+    payment_ID [name: 'idx_payment_transaction_payment']
+    refund_ID [name: 'idx_payment_transaction_refund']
+    (provider, idempotency_key) [unique, name: 'uk_payment_transaction_idempotency']
+    (provider, provider_transaction_id) [unique, name: 'uk_payment_transaction_provider_ref']
+  }
+  Note: 'Movimientos bancarios de cada cobro: autorización, captura, anulación, reembolso, contracargo o ajuste, con la respuesta del proveedor.'
+}
+
+Table tb_payments {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  order_ID int [not null, note: 'Orden de compra (tb_orders.ID) a la que pertenece el registro.']
+  payment_method_ID int [not null, note: 'Forma de pago del catálogo (tb_payment_methods.ID) efectivamente usada; puede diferir del tipo registrado (por ejemplo pago en efectivo).']
+  user_payment_method_ID bigint [note: 'Método registrado por el usuario (tbd_user_payment_methods.ID) con el que se paga.']
+  amount decimal(10,2) [not null, note: 'Importe de esta parcialidad en pesos; la suma de parcialidades iguala el total de la orden.']
+  currency char(3) [not null, default: 'MXN', note: 'Código de moneda ISO 4217 de tres letras; por defecto MXN.']
+  installment_number tinyint [not null, default: 1, note: 'Número de parcialidad (1..installments_total); UNIQUE junto con order_ID.']
+  installments_total tinyint [not null, default: 1, note: 'Total de pagos mensuales de la orden (1 = pago único; hasta 12 solo con crédito).']
+  due_date date [note: 'Fecha de vencimiento de la parcialidad (un mes después de la anterior).']
+  payment_status tb_payments_payment_status [not null, default: 'Pending', note: 'Estado del cobro: Pending, Authorized, Paid, Failed, Refunded o PartiallyRefunded.']
+  provider varchar(60) [note: 'Proveedor financiero que procesa el cobro.']
+  provider_reference varchar(150) [note: 'Referencia única que asigna el proveedor al movimiento; junto con provider evita duplicados.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  paid_date datetime [note: 'Fecha y hora en que el cobro se capturó con éxito.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    payment_method_ID [name: 'fk_payment_method']
+    order_ID [name: 'idx_payment_order']
+    user_payment_method_ID [name: 'idx_payment_user_method']
+    (order_ID, installment_number) [unique, name: 'uk_payment_order_installment']
+    (provider, provider_reference) [unique, name: 'uk_payment_provider_reference']
+  }
+  Note: 'Cobros de una orden. Una orden con pago en mensualidades genera un registro por parcialidad (installment_number de installments_total).'
+}
+
+Table tb_people {
+  person_ID bigint [pk, not null, increment, note: 'Identificador único autoincremental de la persona.']
+  user_ID int [unique, note: 'Cuenta (tb_users.ID) a la que pertenece la persona; UNIQUE: relación 1 a 1.']
+  courtesy_title varchar(20) [note: 'Título de cortesía (Sr., Sra., Srita., Dr.).']
+  given_names varchar(150) [not null, note: 'Nombre(s) de pila; obligatorio.']
+  family_names varchar(150) [note: 'Apellidos de la persona.']
+  birth_date date [note: 'Fecha de nacimiento (AAAA-MM-DD).']
+  gender_ID tinyint [note: 'Clave numérica del género (1 = masculino, 2 = femenino, otros) [Verificar regla de negocio]; no existe tabla catálogo.']
+  country_code char(2) [note: 'Código de país ISO 3166-1 alfa-2 (por ejemplo MX).']
+  phone varchar(25) [note: 'Teléfono con lada internacional (formato +52 5512345678).']
+  status bit(1) [default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Note: 'Datos personales y de contacto de la persona dueña de una cuenta (relación 1 a 1 con tb_users).'
+}
+
+Table tb_products {
+  id int [pk, not null, increment, note: 'Identificador único autoincremental del producto.']
+  sku varchar(50) [not null, unique, note: 'Clave de inventario (Stock Keeping Unit) única por producto.']
+  name varchar(250) [not null, note: 'Nombre comercial del producto mostrado en el catálogo.']
+  description text [note: 'Descripción comercial ampliada del producto.']
+  current_price decimal(10,2) [not null, default: 0.00, note: 'Precio unitario vigente en pesos MXN; al comprar se congela en tbd_order_items.unit_price.']
+  current_stock int [not null, default: 0, note: 'Existencias globales disponibles. Se descuenta cuando el sistema atiende la orden y se repone con cancelaciones.']
+  status bit(1) [default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Note: 'Catálogo maestro de productos con precio vigente y existencias globales.'
+}
+
+Table tb_refunds {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  payment_ID int [not null, note: 'Cobro (tb_payments.ID) asociado.']
+  cancellation_ID int [note: 'Cancelación (tb_order_cancellations.ID) asociada.']
+  return_ID int [note: 'Devolución (tb_returns.ID) asociada.']
+  reason tb_refunds_reason [not null, note: 'Origen: Cancellation, Return, Adjustment o Goodwill (CHECK con cancellation_ID/return_ID).']
+  amount decimal(10,2) [not null, note: 'Monto monetario del movimiento, en la moneda indicada (por defecto MXN), con dos decimales; debe ser mayor que cero.']
+  currency char(3) [not null, default: 'MXN', note: 'Código de moneda ISO 4217 de tres letras; por defecto MXN.']
+  refund_status tb_refunds_refund_status [not null, default: 'Pending', note: 'Pending, Submitted, Succeeded, Failed o Canceled.']
+  provider varchar(60) [note: 'Nombre del proveedor del servicio financiero o pasarela que procesa el movimiento (por ejemplo BancoSim, Spin).']
+  provider_reference varchar(150) [note: 'Referencia única que asigna el proveedor al movimiento; junto con provider evita duplicados.']
+  requested_by_user_ID int [note: 'Usuario (tb_users.ID) que solicitó el trámite; NULL cuando lo genera el sistema.']
+  reason_detail varchar(1000) [note: 'Explicación libre del motivo capturada por el solicitante.']
+  requested_at datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se solicitó el trámite.']
+  processed_at datetime [note: 'Fecha y hora en que el proveedor procesó el reembolso.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    cancellation_ID [name: 'idx_refunds_cancellation']
+    payment_ID [name: 'idx_refunds_payment']
+    requested_by_user_ID [name: 'idx_refunds_requester']
+    return_ID [name: 'idx_refunds_return']
+    (ID, payment_ID) [unique, name: 'uk_refunds_id_payment']
+    (provider, provider_reference) [unique, name: 'uk_refunds_provider_reference']
+  }
+  Note: 'Reembolsos a un pago originados por cancelaciones, devoluciones o ajustes.'
+}
+
+Table tb_returns {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  buyer_order_ID int [not null, note: 'Suborden de vendedor (tbd_buyer_orders.ID) a la que pertenece el registro.']
+  requested_by_user_ID int [note: 'Usuario (tb_users.ID) que solicitó el trámite; NULL cuando lo genera el sistema.']
+  reason_code varchar(60) [note: 'Código corto del motivo (por ejemplo OUT_OF_STOCK, CHANGED_MIND, DAMAGED_ON_ARRIVAL).']
+  reason_detail varchar(1000) [note: 'Explicación libre del motivo capturada por el solicitante.']
+  return_status tb_returns_return_status [not null, default: 'Requested', note: 'Requested, Authorized, Rejected, LabelCreated, InTransit, Received, Inspected, Approved, PartiallyApproved, Refunded o Closed.']
+  return_carrier varchar(100) [note: 'Paquetería de la devolución.']
+  return_tracking_number varchar(150) [note: 'Guía de la devolución.']
+  requested_at datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se solicitó el trámite.']
+  authorized_at datetime [note: 'Fecha y hora de autorización.']
+  received_at datetime [note: 'Fecha y hora en que se recibió el producto devuelto.']
+  closed_at datetime [note: 'Fecha y hora de cierre del trámite.']
+  internal_notes varchar(1000) [note: 'Notas internas del personal sobre el trámite; no se muestran al cliente.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    buyer_order_ID [name: 'idx_returns_buyer_order']
+    requested_by_user_ID [name: 'idx_returns_requester']
+    (return_carrier, return_tracking_number) [name: 'idx_returns_tracking']
+  }
+  Note: 'Reclamaciones de devolución de productos ya entregados, con su trámite de recolección e inspección.'
+}
+
+Table tb_seller_orders {
+  ID int [pk, not null, increment, note: 'Identificador de la réplica; coincide con tbd_buyer_orders.ID.']
+  seller_ID int [not null, note: 'Usuario vendedor (tb_users.ID) que surte esta suborden.']
+  subtotal decimal(12,2) [not null, default: 0.00, note: 'Importe parcial en pesos: suma de los productos vigentes del registro sin envío.']
+  shipping_cost decimal(12,2) [not null, default: 0.00, note: 'Costo de envío en pesos con dos decimales; no puede ser negativo.']
+  fulfillment_status tb_seller_orders_fulfillment_status [not null, default: 'Pending', note: 'Estado de surtido de la suborden: Pending, Accepted, Preparing, Sent, Delivered, Canceled o Returned.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    seller_ID [name: 'seller_ID']
+  }
+  Note: 'Réplica histórica de tbd_buyer_orders (mismas columnas e identificadores) conservada para la vista del vendedor. No tiene llave hacia tb_orders; la relación se infiere por el ID compartido con tbd_buyer_orders.'
+}
+
+Table tb_shipments {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  buyer_order_ID int [not null, note: 'Suborden de vendedor (tbd_buyer_orders.ID) a la que pertenece el registro.']
+  reshipment_of_return_ID int [note: 'Devolución (tb_returns.ID) que originó este reenvío; NULL en envíos originales.']
+  address_ID bigint [note: 'Domicilio original (tb_user_addresses.ID) del que se copiaron los datos de entrega.']
+  recipient_name varchar(150) [note: 'Nombre completo de quien recibe el pedido.']
+  recipient_phone varchar(25) [note: 'Teléfono de contacto de quien recibe el pedido, con lada.']
+  address_line_1 varchar(255) [note: 'Calle, número exterior y número interior congelados al enviar.']
+  address_line_2 varchar(255) [note: 'Colonia u otra referencia de la dirección.']
+  city varchar(120) [note: 'Ciudad de entrega.']
+  state_region varchar(120) [note: 'Estado o región de entrega.']
+  postal_code varchar(20) [note: 'Código postal de entrega.']
+  country_code char(2) [note: 'Código de país ISO 3166-1 alfa-2 (por ejemplo MX).']
+  carrier varchar(100) [note: 'Paquetería que transporta el envío.']
+  service_level varchar(100) [note: 'Nivel de servicio (Estándar, Reenvío).']
+  pickup_point varchar(255) [note: 'Punto de recolección donde queda el pedido cuando nadie lo recibe; NULL en entregas a domicilio.']
+  tracking_number varchar(150) [note: 'Número de guía de rastreo.']
+  tracking_url varchar(500) [note: 'Dirección web de rastreo.']
+  shipment_status tb_shipments_shipment_status [not null, default: 'Pending', note: 'Pending, LabelCreated, ReadyToShip, InTransit, OutForDelivery, Delivered, DeliveryFailed, Lost, Returned, AtPickupPoint o PickedUp.']
+  shipping_cost decimal(12,2) [not null, default: 0.00, note: 'Costo de envío en pesos con dos decimales; no puede ser negativo.']
+  shipped_at datetime [note: 'Fecha y hora de salida del paquete.']
+  estimated_delivery_at datetime [note: 'Fecha estimada de entrega.']
+  delivered_at datetime [note: 'Fecha y hora de entrega o recolección efectiva.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    address_ID [name: 'idx_shipments_address']
+    buyer_order_ID [name: 'idx_shipments_buyer_order']
+    reshipment_of_return_ID [name: 'idx_shipments_reshipment']
+    (carrier, tracking_number) [name: 'idx_shipments_tracking']
+  }
+  Note: 'Envíos de cada suborden: destinatario y dirección congelados, paquetería, guía, estado y fechas; también reenvíos por devolución y entregas en punto de recolección.'
+}
+
+Table tb_user_addresses {
+  ID bigint [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  user_ID int [not null, note: 'Usuario (tb_users.ID) dueño del domicilio.']
+  address_label varchar(100) [not null, note: 'Etiqueta con la que el usuario identifica el domicilio (Casa, Trabajo, Casa Papas).']
+  recipient_name varchar(150) [note: 'Nombre completo de quien recibe el pedido.']
+  recipient_phone varchar(25) [note: 'Teléfono de contacto de quien recibe el pedido, con lada.']
+  delivery_instructions varchar(500) [note: 'Indicaciones para el repartidor (referencias, horarios).']
+  latitude decimal(10,7) [note: 'Latitud en grados decimales (-90 a 90); se captura junto con longitude o ambas NULL.']
+  longitude decimal(10,7) [note: 'Longitud en grados decimales (-180 a 180); se captura junto con latitude o ambas NULL.']
+  is_default tinyint(1) [not null, default: 0, note: '1 si es el domicilio predeterminado del usuario.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    user_ID [name: 'idx_user_addresses']
+  }
+  Note: 'Domicilio guardado por un usuario (etiqueta, destinatario, referencias y coordenadas). Su estructura geográfica se descompone en tbd_address_components.'
+}
+
+Table tb_users {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental de la cuenta de usuario; referenciado por casi todo el modelo.']
+  email varchar(80) [not null, unique, note: 'Correo electrónico de acceso; único en toda la plataforma, máximo 80 caracteres.']
+  nickname varchar(100) [not null, unique, note: 'Alias público de la cuenta; único, máximo 100 caracteres.']
+  password varchar(255) [not null, note: 'Resumen criptográfico (hash) de la contraseña; nunca se guarda en texto plano. Ejemplo: SHA2(...,256) en hexadecimal.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora de la última modificación de la cuenta.']
+  last_login datetime [note: 'Fecha y hora del último inicio de sesión; NULL si nunca ha ingresado.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  Note: 'Cuenta de acceso a la plataforma de comercio electrónico. Un mismo usuario puede actuar como comprador, vendedor/proveedor o personal interno según los roles del SGBD; los datos personales viven en tb_people.'
+}
+
+Table tbc_categories {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  name varchar(120) [not null, unique, note: 'Nombre de la categoría.']
+  description text [note: 'Texto descriptivo libre del registro.']
+  sup_id_category int [note: 'Categoría superior (tbc_categories.ID); NULL o 0 para categorías raíz [Verificar regla de negocio].']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [not null, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    sup_id_category [name: 'fk_superior_category']
+  }
+  Note: 'Árbol de categorías de producto (autorreferenciado mediante sup_id_category).'
+}
+
+Table tbc_payment_methods_types {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  code varchar(30) [not null, unique, note: 'Código único del tipo: DEBIT_CARD, CREDIT_CARD, DIGITAL_CARD, SPEI, CASH, GIFT_COUPON.']
+  description text [not null, note: 'Descripción legible del tipo de método de pago.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Note: 'Tipos de método de pago que un usuario puede registrar (débito, crédito, tarjeta digital, SPEI, efectivo, cupón).'
+}
+
+Table tbd_address_components {
+  ID bigint [pk, not null, increment, note: 'Identificador del componente; en la carga masiva vale (address_ID-1)*10 + nivel, de modo que cada domicilio ocupa bloques consecutivos.']
+  address_ID bigint [not null, note: 'Domicilio (tb_user_addresses.ID) al que pertenece el componente.']
+  value varchar(255) [not null, note: 'Valor del componente (por ejemplo Puebla, 73080, 114).']
+  component_type varchar(50) [not null, note: 'Nivel jerárquico: País, Estado, Municipio, Ciudad, Localidad, Código Postal, Colonia, Calle/Avenida, Número Exterior o Número Interior.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  address_sup_ID bigint [note: 'Componente superior (mismo address_ID) en el árbol; NULL en la raíz (País). FK compuesta (address_ID, address_sup_ID).']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    (address_ID, address_sup_ID) [name: 'idx_address_parent']
+    (address_ID, ID) [unique, name: 'uk_address_component']
+  }
+  Note: 'Componentes del domicilio en escalamiento vertical (País > Estado > Municipio > Ciudad > Localidad > Código Postal > Colonia > Calle > Número exterior > Número interior); cada componente apunta a su superior mediante address_sup_ID.'
+}
+
+Table tbd_buyer_orders {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  order_ID int [not null, note: 'Orden (tb_orders.ID) a la que pertenece; con seller_ID es UNIQUE: una suborden por vendedor y orden.']
+  seller_ID int [not null, note: 'Vendedor (tb_users.ID) que surte los productos de la suborden.']
+  subtotal decimal(12,2) [not null, default: 0.00, note: 'Importe vigente de los productos de este vendedor; se reduce con cancelaciones.']
+  shipping_cost decimal(12,2) [not null, default: 0.00, note: 'Costo de envío en pesos con dos decimales; no puede ser negativo.']
+  fulfillment_status tbd_buyer_orders_fulfillment_status [not null, default: 'Pending', note: 'Estado de surtido de la suborden: Pending, Accepted, Preparing, Sent, Delivered, Canceled o Returned.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    seller_ID [name: 'seller_ID']
+    (order_ID, seller_ID) [unique, name: 'uk_buyer_orders_order_seller']
+  }
+  Note: 'Suborden por vendedor: agrupa los productos de una orden que surte un mismo proveedor y lleva su propio estado de surtido.'
+}
+
+Table tbd_cancellation_items {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  cancellation_ID int [not null, note: 'Cancelación (tb_order_cancellations.ID) asociada.']
+  order_item_ID int [not null, note: 'Producto de una suborden (tbd_order_items.ID) al que se refiere el registro.']
+  quantity int [not null, note: 'Unidades canceladas de la línea.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  Indexes {
+    order_item_ID [name: 'idx_cancellation_items_order_item']
+    (cancellation_ID, order_item_ID) [unique, name: 'uk_cancellation_order_item']
+  }
+  Note: 'Productos y cantidades incluidos en una cancelación.'
+}
+
+Table tbd_cart_items {
+  cart_ID int [not null, note: 'Carrito (tb_carts.ID) asociado.']
+  provider_ID int [not null, note: 'Proveedor (tb_users.ID) elegido para el producto; con product_ID forma la FK compuesta a tbd_products_users_providers.']
+  product_ID int [not null, note: 'Identificador del producto (tb_products.id) al que se refiere el registro.']
+  quantity int [not null, default: 1, note: 'Unidades deseadas; el trigger de inserción valida existencias suficientes.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se agregó el producto al carrito.']
+  Indexes {
+    (cart_ID, provider_ID, product_ID) [pk]
+    (provider_ID, product_ID) [name: 'idx_cart_items_provider_product']
+    product_ID [name: 'product_ID']
+    provider_ID [name: 'provider_ID']
+  }
+  Note: 'Líneas del carrito: par (proveedor, producto) y cantidad deseada.'
+}
+
+Table tbd_order_items {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  buyer_order_ID int [not null, note: 'Suborden (tbd_buyer_orders.ID) a la que pertenece la línea.']
+  product_ID int [not null, note: 'Identificador del producto (tb_products.id) al que se refiere el registro.']
+  provider_ID int [not null, note: 'Proveedor (tb_users.ID) del producto; con product_ID forma la FK compuesta a tbd_products_users_providers.']
+  product_name varchar(255) [not null, note: 'Nombre del producto congelado al momento de la compra.']
+  quantity int [not null, note: 'Unidades compradas originalmente.']
+  canceled_quantity int [not null, default: 0, note: 'Unidades canceladas; no puede exceder quantity (CHECK). Unidades vigentes = quantity - canceled_quantity.']
+  unit_price decimal(12,2) [not null, note: 'Precio unitario congelado al comprar, en pesos; no negativo.']
+  subtotal decimal(12,2) [note: 'Columna generada = quantity × unit_price (sin descontar cancelaciones).']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  Indexes {
+    buyer_order_ID [name: 'idx_order_items_buyer_order']
+    (provider_ID, product_ID) [name: 'idx_order_items_provider_product']
+    product_ID [name: 'product_ID']
+    provider_ID [name: 'provider_ID']
+  }
+  Note: 'Productos de cada suborden con nombre y precio congelados al momento de la compra, y las unidades canceladas.'
+}
+
+Table tbd_products_categories {
+  category_ID int [not null, note: 'Categoría (tbc_categories.ID) asignada al producto.']
+  product_ID int [not null, note: 'Identificador del producto (tb_products.id) al que se refiere el registro.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [not null, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    (category_ID, product_ID) [pk]
+    product_ID [name: 'fk_product']
+  }
+  Note: 'Asociación muchos a muchos entre productos y categorías.'
+}
+
+Table tbd_products_users_providers {
+  user_ID int [not null, note: 'Usuario proveedor/vendedor (tb_users.ID) que ofrece el producto.']
+  product_ID int [not null, note: 'Identificador del producto (tb_products.id) al que se refiere el registro.']
+  type_ownership tbd_products_users_providers_type_ownership [note: 'Relación comercial del proveedor con el producto: Owner, Reseller o Distributor.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  available_date datetime [not null, note: 'Fecha desde la que el proveedor ofrece el producto.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    (user_ID, product_ID) [pk]
+    product_ID [name: 'fk_products2']
+  }
+  Note: 'Oferta comercial: qué usuario (proveedor/vendedor) ofrece qué producto y con qué tipo de propiedad. Un producto disponible para compra requiere un registro activo aquí.'
+}
+
+Table tbd_return_items {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  return_ID int [not null, note: 'Devolución (tb_returns.ID) asociada.']
+  order_item_ID int [not null, note: 'Producto de una suborden (tbd_order_items.ID) al que se refiere el registro.']
+  quantity int [not null, note: 'Número de unidades; entero positivo (CHECK > 0).']
+  item_condition tbd_return_items_item_condition [note: 'Condición del producto: Unopened, Unused, Used, Damaged, Defective u Other.']
+  disposition tbd_return_items_disposition [not null, default: 'Pending', note: 'Destino físico: Pending, Restock, Repair, Dispose o SupplierReturn.']
+  approved_refund_amount decimal(12,2) [not null, default: 0.00, note: 'Importe aprobado para reembolso; 0 cuando se resuelve con reenvío.']
+  item_status tbd_return_items_item_status [not null, default: 'Requested', note: 'Requested, Approved, Rejected, Received o Refunded.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    order_item_ID [name: 'idx_return_items_order_item']
+    (return_ID, order_item_ID) [unique, name: 'uk_return_order_item']
+  }
+  Note: 'Productos devueltos con condición, destino físico y reembolso aprobado.'
+}
+
+Table tbd_user_payment_methods {
+  ID bigint [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  user_ID int [not null, note: 'Identificador del usuario (tb_users.ID) dueño del registro.']
+  payment_method_type_ID int [not null, note: 'Tipo de método (tbc_payment_methods_types.ID).']
+  provider varchar(60) [not null, note: 'Institución o emisor del método (BancoSim, Spin, GiftCoupon).']
+  provider_method_ref varchar(255) [not null, note: 'Cuenta simulada de 16 dígitos, token del proveedor o código de cupón; con provider es UNIQUE.']
+  label varchar(100) [note: 'Alias que el usuario da al método.']
+  last_four char(4) [note: 'Últimos cuatro dígitos para mostrar; CHECK ^[0-9]{4}$ o NULL.']
+  is_default tinyint(1) [not null, default: 0, note: 'Marca (1/0) de predeterminado del usuario; solo debería existir uno activo por usuario [Verificar regla de negocio].']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    payment_method_type_ID [name: 'payment_method_type_ID']
+    (provider, provider_method_ref) [unique, name: 'uk_provider_method']
+    user_ID [name: 'user_ID']
+  }
+  Note: 'Método de pago registrado por un usuario (cuenta simulada de 16 dígitos, token o código de cupón) asociado a su cuenta.'
+}
+
+Table tbd_users_wishlist_products {
+  user_ID int [not null, note: 'Usuario (tb_users.ID) dueño de la lista de deseos.']
+  product_ID int [not null, note: 'Identificador del producto (tb_products.id) al que se refiere el registro.']
+  status bit(1) [not null, default: `b'1'`, note: 'Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  last_update datetime [not null, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
+  Indexes {
+    (user_ID, product_ID) [pk]
+    product_ID [name: 'fk_products3']
+  }
+  Note: 'Lista de deseos: productos que un usuario marcó para consulta o compra futura.'
+}
+
+Ref tb_carts_ibfk_1: tb_carts.user_ID > tb_users.ID [delete: no action]
+Ref fk_coupon_order: tb_gift_coupons.order_ID > tb_orders.ID [delete: no action]
+Ref fk_coupon_user: tb_gift_coupons.user_ID > tb_users.ID [delete: no action]
+Ref fk_cancellations_buyer_order: tb_order_cancellations.buyer_order_ID > tbd_buyer_orders.ID [delete: no action]
+Ref fk_cancellations_order: tb_order_cancellations.order_ID > tb_orders.ID [delete: no action]
+Ref fk_cancellations_requester: tb_order_cancellations.requested_by_user_ID > tb_users.ID [delete: no action]
+Ref fk_orders_address: tb_orders.shipping_address_ID > tb_user_addresses.ID [delete: no action]
+Ref fk_orders_cart: tb_orders.cart_ID - tb_carts.ID [delete: no action]
+Ref fk_user_2: tb_orders.User_ID > tb_users.ID [delete: no action]
+Ref fk_payment_methods_type: tb_payment_methods.type_ID > tbc_payment_methods_types.ID [delete: no action]
+Ref fk_payment_transaction_payment: tb_payment_transaction.payment_ID > tb_payments.ID [delete: no action]
+Ref fk_payment_transaction_refund_payment: tb_payment_transaction.(refund_ID, payment_ID) > tb_refunds.(ID, payment_ID) [delete: no action]
+Ref fk_payment_method: tb_payments.payment_method_ID > tb_payment_methods.ID [delete: no action]
+Ref fk_payment_order: tb_payments.order_ID > tb_orders.ID [delete: no action]
+Ref fk_payment_user_method: tb_payments.user_payment_method_ID > tbd_user_payment_methods.ID [delete: no action]
+Ref fk_persons_users: tb_people.user_ID - tb_users.ID [delete: no action]
+Ref fk_refunds_cancellation: tb_refunds.cancellation_ID > tb_order_cancellations.ID [delete: no action]
+Ref fk_refunds_payment: tb_refunds.payment_ID > tb_payments.ID [delete: no action]
+Ref fk_refunds_requester: tb_refunds.requested_by_user_ID > tb_users.ID [delete: no action]
+Ref fk_refunds_return: tb_refunds.return_ID > tb_returns.ID [delete: no action]
+Ref fk_returns_buyer_order: tb_returns.buyer_order_ID > tbd_buyer_orders.ID [delete: no action]
+Ref fk_returns_requester: tb_returns.requested_by_user_ID > tb_users.ID [delete: no action]
+Ref tb_seller_orders_ibfk_1: tb_seller_orders.seller_ID > tb_users.ID [delete: no action]
+Ref fk_shipments_address: tb_shipments.address_ID > tb_user_addresses.ID [delete: no action]
+Ref fk_shipments_buyer_order: tb_shipments.buyer_order_ID > tbd_buyer_orders.ID [delete: no action]
+Ref fk_shipments_return: tb_shipments.reshipment_of_return_ID > tb_returns.ID [delete: no action]
+Ref fk_addresses_users: tb_user_addresses.user_ID > tb_users.ID [delete: no action]
+Ref fk_superior_category: tbc_categories.sup_id_category > tbc_categories.ID [delete: no action]
+Ref fk_component_address: tbd_address_components.address_ID > tb_user_addresses.ID [delete: restrict]
+Ref fk_component_parent: tbd_address_components.(address_ID, address_sup_ID) > tbd_address_components.(address_ID, ID) [delete: restrict]
+Ref fk_buyer_orders_order: tbd_buyer_orders.order_ID > tb_orders.ID [delete: no action]
+Ref tbd_buyer_orders_ibfk_1: tbd_buyer_orders.seller_ID > tb_users.ID [delete: no action]
+Ref fk_cancellation_items_cancellation: tbd_cancellation_items.cancellation_ID > tb_order_cancellations.ID [delete: no action]
+Ref fk_cancellation_items_order_item: tbd_cancellation_items.order_item_ID > tbd_order_items.ID [delete: no action]
+Ref fk_cart_items_provider_product: tbd_cart_items.(provider_ID, product_ID) > tbd_products_users_providers.(user_ID, product_ID) [delete: no action]
+Ref tbd_cart_items_ibfk_1: tbd_cart_items.cart_ID > tb_carts.ID [delete: no action]
+Ref fk_order_items_buyer_order: tbd_order_items.buyer_order_ID > tbd_buyer_orders.ID [delete: no action]
+Ref fk_order_items_provider_product: tbd_order_items.(provider_ID, product_ID) > tbd_products_users_providers.(user_ID, product_ID) [delete: no action]
+Ref fk_category: tbd_products_categories.category_ID > tbc_categories.ID [delete: no action]
+Ref fk_product: tbd_products_categories.product_ID > tb_products.id [delete: no action]
+Ref fk_products2: tbd_products_users_providers.product_ID > tb_products.id [delete: no action]
+Ref fk_user1: tbd_products_users_providers.user_ID > tb_users.ID [delete: no action]
+Ref fk_return_items_order_item: tbd_return_items.order_item_ID > tbd_order_items.ID [delete: no action]
+Ref fk_return_items_return: tbd_return_items.return_ID > tb_returns.ID [delete: no action]
+Ref tbd_user_payment_methods_ibfk_1: tbd_user_payment_methods.user_ID > tb_users.ID [delete: no action]
+Ref tbd_user_payment_methods_ibfk_2: tbd_user_payment_methods.payment_method_type_ID > tbc_payment_methods_types.ID [delete: no action]
+Ref fk_products3: tbd_users_wishlist_products.product_ID > tb_products.id [delete: no action]
+Ref fk_user2: tbd_users_wishlist_products.user_ID > tb_users.ID [delete: no action]

@@ -231,7 +231,7 @@ footer { padding: 30px 20px 50px; text-align: center; color: var(--muted); font-
 </header>
 
 <section class="hero">
-  <span class="eyebrow">Práctica 03 · Bases de Datos en la Nube</span>
+  <span class="eyebrow">Práctica 04 · Bases de Datos en la Nube</span>
   <h1>Diccionario de Datos</h1>
   <p>Ingeniería en Tecnologías de la Información e Innovación Digital · Periodo septiembre – diciembre 2026</p>
   <p class="meta" id="srcMeta">MySQL 8.0 · InnoDB · utf8mb4</p>
@@ -245,11 +245,11 @@ footer { padding: 30px 20px 50px; text-align: center; color: var(--muted); font-
   </main>
 </div>
 
-<footer>Practicas_BDN_240165 · Práctica 03 · Diccionario de datos de <code>db_test</code></footer>
+<footer>Practicas_BDN_240165 · Práctica 04 · Diccionario de datos de <code>db_test</code></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script type="module">
-const BASE = "Practica03/diccionario_datos/";
+const BASE = "Practica04/diccionario_datos/";
 const FILES = {
   md: BASE + "diccionario_datos.md",
   xlsx: BASE + "diccionario_datos.xlsx",
@@ -257,7 +257,7 @@ const FILES = {
   dbml: BASE + "schema.dbml",
   mmd: BASE + "diagrama_er.mmd"
 };
-const ICONS = { resumen: "◈", er: "⬡", tablas: "▦", vistas: "◫", triggers: "⚡", procedimientos: "⚙", funciones: "ƒ", dominios: "◇", observaciones: "⚠", pendientes: "☐", archivos: "⇩" };
+const ICONS = { analisis: "Aa", entidades: "⇄", reglas: "✔", resumen: "◈", er: "⬡", tablas: "▦", vistas: "◫", triggers: "⚡", procedimientos: "⚙", funciones: "ƒ", dominios: "◇", observaciones: "⚠", pendientes: "☐", archivos: "⇩" };
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const slug = t => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -297,6 +297,7 @@ function buildStats(md) {
     ["Triggers", val("Triggers"), "--amber"],
     ["Procedimientos", val("Procedimientos"), "--green"],
     ["Funciones", val("Funciones"), "--cyan"],
+    ["Llaves foráneas", val("Llaves foráneas"), "--pink", true],
     ["Usuarios insertados masivamente", val("Usuarios insertados masivamente"), "--pink", true]
   ].filter(i => i[1] != null);
   const box = $("#stats");
@@ -339,7 +340,7 @@ function buildPanels(md, mmd) {
   main.innerHTML = "";
   const nav = $("#nav");
   nav.innerHTML = "<h4>Navegación</h4>";
-  const order = ["resumen", "er", "tablas", "vistas", "triggers", "procedimientos", "funciones", "dominios", "observaciones", "pendientes", "archivos"];
+  const order = ["analisis", "resumen", "entidades", "er", "tablas", "vistas", "procedimientos", "triggers", "reglas", "dominios", "observaciones", "pendientes", "archivos"];
   const built = {};
 
   panels.forEach(p => {
@@ -409,7 +410,7 @@ function addSectionCounts(nav, built) {
   count("tablas", "h3[data-table]");
   count("vistas", "tbody tr");
   count("triggers", "tbody tr");
-  count("procedimientos", "h3");
+  count("procedimientos", "tbody tr");
   count("funciones", "tbody tr");
 }
 
@@ -498,7 +499,7 @@ const POS = {
   tb_carts: [2, 20], tbd_cart_items: [2, 190], tb_products: [2, 440], tbd_products_users_providers: [2, 640], tbd_products_categories: [2, 830], tbc_categories: [2, 1000],
   tb_orders: [3, 20], tbd_buyer_orders: [3, 240], tbd_order_items: [3, 470], tb_seller_orders: [3, 760],
   tb_payment_methods: [4, 20], tb_payments: [4, 190], tb_payment_transaction: [4, 440], tb_refunds: [4, 700],
-  tb_shipments: [5, 20], tb_returns: [5, 250], tbd_return_items: [5, 470], tb_order_cancellations: [5, 700], tbd_cancellation_items: [5, 920]
+  tb_shipments: [5, 20], tb_returns: [5, 250], tbd_return_items: [5, 470], tb_order_cancellations: [5, 700], tbd_cancellation_items: [5, 920], tb_gift_coupons: [3, 960]
 };
 const NS = "http://www.w3.org/2000/svg";
 const el = (n, a = {}, t) => { const e = document.createElementNS(NS, n); for (const k in a) e.setAttribute(k, a[k]); if (t != null) e.textContent = t; return e; };
@@ -509,9 +510,9 @@ function parseMmd(src) {
   let cur = null;
   src.split(/\r?\n/).forEach(l => {
     let m;
-    if ((m = l.match(/^\s*(\w+)\s+(\|\|--o\{|\|\|--\|\|)\s+(\w+)\s*:\s*"([^"]*)"/))) rels.push({ p: m[1], c: m[3], one: m[2] === "||--||", label: m[4] });
+    if ((m = l.match(/^\s*(\w+)\s+(\|[|o]--[o|][{|])\s+(\w+)\s*:\s*"([^"]*)"/))) rels.push({ p: m[1], c: m[3], one: !m[2].endsWith("{"), label: m[4] });
     else if ((m = l.match(/^\s*(\w+)\s*\{\s*$/))) { cur = { name: m[1], rows: [] }; ents[m[1]] = cur; }
-    else if (cur && (m = l.match(/^\s*(\S+)\s+(\w+)\s+(PK|FK)\s*$/))) cur.rows.push({ type: m[1], name: m[2], key: m[3] });
+    else if (cur && (m = l.match(/^\s*(\S+)\s+(\w+)\s+((?:PK|FK|UK)(?:,(?:PK|FK|UK))*)\s*$/))) cur.rows.push({ type: m[1], name: m[2], key: m[3].includes("PK") ? "PK" : m[3].includes("FK") ? "FK" : "UK" });
     else if (cur && /^\s*\}/.test(l)) cur = null;
   });
   return { ents, rels };

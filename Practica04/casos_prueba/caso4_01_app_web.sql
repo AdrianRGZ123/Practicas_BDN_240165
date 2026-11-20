@@ -9,6 +9,7 @@ SELECT CURRENT_USER() AS usuario_conexion, CURRENT_ROLE() AS rol_activo;
 SET @uid = 7400;
 
 /* PASO 1. Carrito con 3 productos del MISMO proveedor, de 1 a 3 unidades cada uno */
+CALL sp_trace_step(4, 1, 'PASO 1. Carrito con 3 productos del MISMO proveedor, de 1 a 3 unidades cada uno', CURRENT_ROLE());
 SET @prov = (SELECT provider_ID FROM vw_available_products WHERE current_stock >= 3
              GROUP BY provider_ID HAVING COUNT(*) >= 3 ORDER BY provider_ID LIMIT 1 OFFSET 9);
 SELECT @prov AS proveedor_elegido;
@@ -22,16 +23,19 @@ SELECT ci.provider_ID, ci.product_ID, p.name, ci.quantity, p.current_price, ci.q
 FROM tbd_cart_items ci JOIN tb_products p ON p.id = ci.product_ID WHERE ci.cart_ID = @cart;
 
 /* PASO 2. Realiza la orden de compra */
+CALL sp_trace_step(4, 2, 'PASO 2. Realiza la orden de compra', CURRENT_ROLE());
 CALL sp_create_order_from_cart(@uid, @order);
 SELECT * FROM vw_cart_to_order WHERE cart_ID = @cart;
 
 /* PASO 3. Domicilio de envío en un lugar que no es su hogar (casa de una amiga) */
+CALL sp_trace_step(4, 3, 'PASO 3. Domicilio de envío en un lugar que no es su hogar (casa de una amiga)', CURRENT_ROLE());
 CALL sp_register_address(@uid, 'Casa de Daniela', 'Daniela Ortega', '+52 7641876655', 'Si nadie abre, dejar en el punto de recolección', 0,
      'Puebla', 'Huauchinango', 'Huauchinango', 'Huauchinango Centro', '73160', 'Aquiles Serdán', 'Calle Hidalgo', '312', NULL, @addr);
 CALL sp_set_order_address(@order, @addr);
 SELECT * FROM vw_user_addresses_full WHERE address_ID = @addr;
 
 /* PASO 4. Método de pago: transferencia SPEI (cuenta simulada de 16 dígitos) */
+CALL sp_trace_step(4, 4, 'PASO 4. Método de pago: transferencia SPEI (cuenta simulada de 16 dígitos)', CURRENT_ROLE());
 SET @card = '6381270094415530';
 INSERT INTO tbd_user_payment_methods (user_ID, payment_method_type_ID, provider, provider_method_ref, label, last_four, is_default)
 SELECT @uid, ID, 'BancoSim-SPEI', @card, 'SPEI Emily', RIGHT(@card, 4), 0
@@ -42,6 +46,7 @@ JOIN tbc_payment_methods_types t ON t.ID = m.payment_method_type_ID WHERE m.ID =
 
 /* PASO 5. Registra un solo pago en efectivo por el costo total (rol buyer) */
 SET ROLE 'buyer';
+CALL sp_trace_step(4, 5, 'PASO 5. Registra un solo pago en efectivo por el costo total (rol buyer)', CURRENT_ROLE());
 SELECT CURRENT_ROLE() AS rol_activo;
 CALL sp_register_payment(@order, @upm, 1, 'CASH', @pay);
 SELECT p.ID, p.order_ID, p.amount, pm.name AS forma_de_pago, p.payment_status, p.user_payment_method_ID

@@ -34,7 +34,7 @@ mysql: [Warning] Using a password on the command line interface can be insecure.
 +-----------+------------+--------------+---------+---------------+---------------------+
 | refund_ID | payment_ID | reason       | amount  | refund_status | processed_at        |
 +-----------+------------+--------------+---------+---------------+---------------------+
-|         1 |          8 | Cancellation | 5633.10 | Succeeded     | 2026-11-11 23:22:46 |
+|         1 |          8 | Cancellation | 5633.10 | Succeeded     | 2026-11-19 20:06:50 |
 +-----------+------------+--------------+---------+---------------+---------------------+
 +----+---------------+-------------------+------------------+--------------------+-------------------+
 | ID | monto_cobrado | payment_status    | transaction_type | transaction_status | monto_transaccion |
@@ -46,17 +46,17 @@ mysql: [Warning] Using a password on the command line interface can be insecure.
 +----+---------------------+---------------------+
 | ID | cancellation_status | completed_at        |
 +----+---------------------+---------------------+
-|  1 | Completed           | 2026-11-11 23:22:46 |
+|  1 | Completed           | 2026-11-19 20:06:50 |
 +----+---------------------+---------------------+
 +----+-----------------+-----------------------+-----------------+--------------------+----------------+------------------+--------------+-------------+
 | ID | shipment_status | tracking_number       | recipient_name  | address_line_1     | address_line_2 | city             | state_region | postal_code |
 +----+-----------------+-----------------------+-----------------+--------------------+----------------+------------------+--------------+-------------+
-| 20 | InTransit       | SIM102163630467842086 | Robert Williams | Calle Enríquez 58  | Salud          | Xalapa-Enríquez  | Veracruz     | 91000       |
-| 21 | InTransit       | SIM102163630467842087 | Robert Williams | Calle Enríquez 58  | Salud          | Xalapa-Enríquez  | Veracruz     | 91000       |
+| 20 | InTransit       | SIM102168306395381845 | Robert Williams | Calle Enríquez 58  | Salud          | Xalapa-Enríquez  | Veracruz     | 91000       |
+| 21 | InTransit       | SIM102168306395381846 | Robert Williams | Calle Enríquez 58  | Salud          | Xalapa-Enríquez  | Veracruz     | 91000       |
 +----+-----------------+-----------------------+-----------------+--------------------+----------------+------------------+--------------+-------------+
 +----------+---------------+----------------+------------+-----------------+---------------------+
 | order_ID | status_string | total_products | total_cost | shipment_status | delivered_at        |
 +----------+---------------+----------------+------------+-----------------+---------------------+
-|        3 | Delivered     |             14 |   13324.74 | Delivered       | 2026-11-11 23:22:46 |
-|        3 | Delivered     |             14 |   13324.74 | Delivered       | 2026-11-11 23:22:46 |
+|        3 | Delivered     |             14 |   13324.74 | Delivered       | 2026-11-19 20:06:50 |
+|        3 | Delivered     |             14 |   13324.74 | Delivered       | 2026-11-19 20:06:50 |
 +----------+---------------+----------------+------------+-----------------+---------------------+

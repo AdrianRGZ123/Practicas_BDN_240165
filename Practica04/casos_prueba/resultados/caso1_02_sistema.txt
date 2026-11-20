@@ -13,7 +13,7 @@ mysql: [Warning] Using a password on the command line interface can be insecure.
 +----+----------------+---------------------+
 | ID | payment_status | paid_date           |
 +----+----------------+---------------------+
-|  1 | Paid           | 2026-11-11 23:22:45 |
+|  1 | Paid           | 2026-11-19 20:06:48 |
 +----+----------------+---------------------+
 +---------------------------------------+
 | resultado                             |
@@ -28,7 +28,7 @@ mysql: [Warning] Using a password on the command line interface can be insecure.
 +----------+---------------+-----------------+------------------------+----------------+----------------------+--------------+-------------+---------------------+
 | order_ID | status_string | shipment_status | address_line_1         | address_line_2 | city                 | state_region | postal_code | delivered_at        |
 +----------+---------------+-----------------+------------------------+----------------+----------------------+--------------+-------------+---------------------+
-|        1 | Delivered     | Delivered       | 21 de Marzo 114 Int. B | La Ribera      | Xicotepec de Juárez  | Puebla       | 73080       | 2026-11-11 23:22:46 |
-|        1 | Delivered     | Delivered       | 21 de Marzo 114 Int. B | La Ribera      | Xicotepec de Juárez  | Puebla       | 73080       | 2026-11-11 23:22:46 |
-|        1 | Delivered     | Delivered       | 21 de Marzo 114 Int. B | La Ribera      | Xicotepec de Juárez  | Puebla       | 73080       | 2026-11-11 23:22:46 |
+|        1 | Delivered     | Delivered       | 21 de Marzo 114 Int. B | La Ribera      | Xicotepec de Juárez  | Puebla       | 73080       | 2026-11-19 20:06:48 |
+|        1 | Delivered     | Delivered       | 21 de Marzo 114 Int. B | La Ribera      | Xicotepec de Juárez  | Puebla       | 73080       | 2026-11-19 20:06:48 |
+|        1 | Delivered     | Delivered       | 21 de Marzo 114 Int. B | La Ribera      | Xicotepec de Juárez  | Puebla       | 73080       | 2026-11-19 20:06:48 |
 +----------+---------------+-----------------+------------------------+----------------+----------------------+--------------+-------------+---------------------+

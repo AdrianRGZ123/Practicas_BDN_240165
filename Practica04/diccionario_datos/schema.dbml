@@ -1,6 +1,6 @@
 Project db_test {
   database_type: "MySQL"
-  Note: "Práctica 04 - Procesos de simulación de compra. Esquema generado desde db_test (MySQL 8.0.42) el 18-11-2026. Convención: tb_ maestras/transaccionales, tbc_ catálogos, tbd_ detalle y asociativas."
+  Note: "Práctica 04 - Procesos de simulación de compra. Esquema generado desde db_test (MySQL 8.0.42) el 19-11-2026. Convención: tb_ maestras/transaccionales, tbc_ catálogos, tbd_ detalle y asociativas."
 }
 
 enum tb_gift_coupons_coupon_status {
@@ -323,6 +323,21 @@ Table tb_people {
   creation_date datetime [default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
   last_update datetime [default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE.']
   Note: 'Datos personales y de contacto de la persona dueña de una cuenta (relación 1 a 1 con tb_users).'
+}
+
+Table tb_practica04_trace {
+  ID int [pk, not null, increment, note: 'Identificador único autoincremental del registro; llave primaria de la tabla.']
+  caso tinyint [not null, note: 'Número de caso de prueba (1 a 5); CHECK entre 1 y 5.']
+  paso tinyint [not null, note: 'Paso dentro del caso: 0 = preparación, 1..n = paso del enunciado, 99 = marca de fin del caso.']
+  descripcion varchar(300) [not null, note: 'Texto del paso tal como se ejecutó en el script del caso.']
+  rol varchar(100) [note: 'Rol activo de la conexión al iniciar el paso (user_not_registered, buyer o superadmin).']
+  db_user varchar(80) [not null, note: 'Usuario@host de la conexión que ejecutó el paso (app_web o adrian.rios).']
+  log_start_ID int [not null, note: 'Primer tb_logs.ID generado desde este paso; el rango termina donde empieza el paso siguiente.']
+  creation_date datetime [not null, default: `CURRENT_TIMESTAMP`, note: 'Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica.']
+  Indexes {
+    (caso, ID) [name: 'idx_trace_caso']
+  }
+  Note: 'Marcas de inicio de cada paso de los 5 casos de prueba de la Práctica 04; permiten a las vistas vw_practica04_caso_N ligar cada evento de tb_logs con el paso que lo originó.'
 }
 
 Table tb_products {

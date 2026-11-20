@@ -162,6 +162,7 @@ GRANT EXECUTE ON PROCEDURE db_test.sp_register_address        TO 'user_not_regis
 GRANT EXECUTE ON PROCEDURE db_test.sp_set_order_address       TO 'user_not_registered', 'buyer';
 GRANT EXECUTE ON PROCEDURE db_test.sp_request_item_cancellation TO 'buyer';
 GRANT EXECUTE ON PROCEDURE db_test.sp_request_return          TO 'buyer';
+GRANT EXECUTE ON PROCEDURE db_test.sp_trace_step             TO 'user_not_registered', 'buyer';
 GRANT SELECT ON db_test.vw_cart_to_order        TO 'user_not_registered', 'buyer';
 GRANT SELECT ON db_test.vw_user_addresses_full  TO 'user_not_registered', 'buyer';
 GRANT SELECT ON db_test.vw_order_detail         TO 'user_not_registered', 'buyer';

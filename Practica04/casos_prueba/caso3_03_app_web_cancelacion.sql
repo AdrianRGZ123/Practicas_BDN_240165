@@ -10,6 +10,7 @@ SET @uid = 5100;
 SET @order = (SELECT MAX(ID) FROM tb_orders WHERE User_ID = @uid);
 
 /* PASO 7. Cancela por completo el segundo producto de la orden */
+CALL sp_trace_step(3, 7, 'PASO 7. Cancela por completo el segundo producto de la orden', CURRENT_ROLE());
 SELECT oi.ID AS order_item_ID, oi.product_name, oi.quantity, oi.unit_price, oi.quantity * oi.unit_price AS importe
 FROM tbd_order_items oi JOIN tbd_buyer_orders bo ON bo.ID = oi.buyer_order_ID WHERE bo.order_ID = @order ORDER BY oi.ID;
 SET @item = (SELECT oi.ID FROM tbd_order_items oi JOIN tbd_buyer_orders bo ON bo.ID = oi.buyer_order_ID WHERE bo.order_ID = @order ORDER BY oi.ID LIMIT 1 OFFSET 1);

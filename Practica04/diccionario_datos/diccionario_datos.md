@@ -1,6 +1,6 @@
 # Diccionario de datos — `db_test` (Práctica 04)
 
-> Fuente: estructura real de la base `db_test` (MySQL 8.0.42) leída de `information_schema` el 18-11-2026 (equivale a `backups/Respaldo 18-11-26.sql`). Las marcas `[Verificar regla de negocio]` señalan reglas inferidas que el DDL no puede confirmar.
+> Fuente: estructura real de la base `db_test` (MySQL 8.0.42) leída de `information_schema` el 19-11-2026 (equivale a `backups/Respaldo 18-11-26.sql`). Las marcas `[Verificar regla de negocio]` señalan reglas inferidas que el DDL no puede confirmar.
 
 ## Índice
 
@@ -39,10 +39,10 @@ La base ya sigue una convención consistente que se **respeta** (no se renombran
 
 | Elemento | Conteo |
 |---|---:|
-| Tablas | 28 |
-| Vistas | 32 |
-| Triggers | 87 |
-| Procedimientos | 28 |
+| Tablas | 29 |
+| Vistas | 39 |
+| Triggers | 89 |
+| Procedimientos | 29 |
 | Funciones | 6 |
 | Llaves foráneas | 48 |
 
@@ -50,7 +50,7 @@ Registros por tabla:
 
 | Tabla | Tipo | Registros |
 |---|---|---:|
-| `tb_logs` | Transaccional / maestra | 189 764 |
+| `tb_logs` | Transaccional / maestra | 189 767 |
 | `tbd_address_components` | Detalle / asociativa | 95 482 |
 | `tbd_products_categories` | Detalle / asociativa | 23 020 |
 | `tb_products` | Transaccional / maestra | 15 007 |
@@ -59,6 +59,7 @@ Registros por tabla:
 | `tb_user_addresses` | Transaccional / maestra | 10 230 |
 | `tb_people` | Transaccional / maestra | 10 226 |
 | `tbc_categories` | Catálogo | 100 |
+| `tb_practica04_trace` | Transaccional / maestra | 52 |
 | `tbd_cart_items` | Detalle / asociativa | 22 |
 | `tbd_order_items` | Detalle / asociativa | 22 |
 | `tb_payment_transaction` | Transaccional / maestra | 21 |
@@ -148,8 +149,8 @@ Carrito de compra. Cada usuario puede tener varios carritos a lo largo del tiemp
 | `user_ID` | `int` | FK→tb_users.ID, NN | Identificador del usuario (tb_users.ID) dueño del registro. | `1500` |
 | `status` | `bit(1)` | DEF=b'1' | 1 = carrito activo; 0 = carrito convertido en orden o inactivo. | 0 |
 | `active_user_ID` | `int = if((`status` = 0x01),`user_ID`,NULL)` | UQ, GEN | Columna generada: copia user_ID solo si el carrito está activo, NULL si no; su UNIQUE garantiza un único carrito activo por usuario. | NULL |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:45` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:47` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:48` |
 
 - Índice no único `idx_cart_user` sobre (user_ID)
 - Índice único `uk_cart_active_user` sobre (active_user_ID)
@@ -172,8 +173,8 @@ Cupones de regalo prepagados. Un cupón aplicado a una orden pasa a Used; si la 
 | `order_ID` | `int unsigned` | FK→tb_orders.ID | Orden en la que está aplicado; NULL si está disponible. | NULL |
 | `times_reassigned` | `int unsigned` | NN, DEF=0 | Veces que el cupón volvió a estar disponible tras cancelarse la orden donde se usó. | `1` |
 | `used_at` | `datetime` | — | Fecha y hora de aplicación del cupón; NULL si está disponible. | NULL |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:47` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:47` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:51` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:51` |
 
 - Índice no único `idx_coupon_order` sobre (order_ID)
 - Índice no único `idx_coupon_user` sobre (user_ID)
@@ -181,10 +182,11 @@ Cupones de regalo prepagados. Un cupón aplicado a una orden pasa a Used; si la 
 - CHECK `chk_coupon_amount`: `(`amount` > 0)`
 - FK `fk_coupon_order`: (order_ID) → `tb_orders` (ID), ON DELETE NO ACTION
 - FK `fk_coupon_user`: (user_ID) → `tb_users` (ID), ON DELETE NO ACTION
+- Triggers: 2 (after insert, after update) que registran la auditoría en `tb_logs`
 
 ### `tb_logs`
 
-**Tipo:** Transaccional / maestra · **Rol:** Auditoría · **Motor:** InnoDB · **Registros:** 189 764
+**Tipo:** Transaccional / maestra · **Rol:** Auditoría · **Motor:** InnoDB · **Registros:** 189 767
 
 Bitácora de auditoría alimentada por triggers: tabla, operación, usuario del SGBD y descripción del cambio.
 
@@ -214,12 +216,12 @@ Solicitudes de cancelación de una orden completa, de una suborden o de producto
 | `reason_code` | `varchar(60)` | — | Código corto del motivo (por ejemplo OUT_OF_STOCK, CHANGED_MIND, DAMAGED_ON_ARRIVAL). | `CHANGED_MIND` |
 | `reason_detail` | `varchar(1000)` | — | Explicación libre del motivo capturada por el solicitante. | `Ya no necesito este producto` |
 | `cancellation_status` | `enum('Requested','Approved','Rejected','Completed')` | NN, DEF=Requested | Requested, Approved, Rejected o Completed. | `Completed` |
-| `requested_at` | `datetime` | NN | Fecha y hora en que se solicitó el trámite. | `2026-11-11 23:22:46` |
-| `reviewed_at` | `datetime` | — | Fecha y hora de la revisión por el sistema o personal. | `2026-11-11 23:22:46` |
-| `completed_at` | `datetime` | — | Fecha y hora en que concluyó (incluido el reembolso). | `2026-11-11 23:22:46` |
+| `requested_at` | `datetime` | NN | Fecha y hora en que se solicitó el trámite. | `2026-11-19 20:06:50` |
+| `reviewed_at` | `datetime` | — | Fecha y hora de la revisión por el sistema o personal. | `2026-11-19 20:06:50` |
+| `completed_at` | `datetime` | — | Fecha y hora en que concluyó (incluido el reembolso). | `2026-11-19 20:06:50` |
 | `internal_notes` | `varchar(1000)` | — | Notas internas del personal sobre el trámite; no se muestran al cliente. | `Orden actualizada: ítems, subtotal, totale…` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:46` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:50` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:50` |
 
 - Índice no único `idx_cancellations_buyer_order` sobre (buyer_order_ID)
 - Índice no único `idx_cancellations_order` sobre (order_ID)
@@ -239,7 +241,7 @@ Cabecera de la orden de compra generada a partir de un carrito (cart_ID, relaci�
 | Campo (Nomenclatura) | Tipo de dato | Restricciones | Descripción funcional y de negocio | Ejemplo de valor |
 |---|---|---|---|---|
 | `ID` | `int unsigned` | PK, NN, AI | Identificador único autoincremental de la orden de compra. | `2` |
-| `key` | `varchar(40)` | NN, UQ | Folio de negocio único de la orden con el formato ORD-AAAAMMDDhhmmss-<cart_ID>. | `ORD-20261111232245-1` |
+| `key` | `varchar(40)` | NN, UQ | Folio de negocio único de la orden con el formato ORD-AAAAMMDDhhmmss-<cart_ID>. | `ORD-20261119200648-1` |
 | `User_ID` | `int` | FK→tb_users.ID, NN | Comprador (tb_users.ID) dueño de la orden. | `1500` |
 | `cart_ID` | `int unsigned` | FK→tb_carts.ID, UQ | Carrito (tb_carts.ID) del que se originó la orden; UNIQUE: un carrito genera como máximo una orden. | `1` |
 | `shipping_address_ID` | `bigint unsigned` | FK→tb_user_addresses.ID | Domicilio de envío (tb_user_addresses.ID) elegido para la orden; NULL hasta que el comprador lo asigna. | `10226` |
@@ -247,8 +249,8 @@ Cabecera de la orden de compra generada a partir de un carrito (cart_ID, relaci�
 | `total_cost` | `decimal(12,2)` | NN, DEF=0.00 | Importe total vigente de la orden en pesos (12,2); se reduce con cancelaciones parciales. | `28319.67` |
 | `status_string` | `enum('Registered','Payed','Canceled','Delivered','Devolved','Attended','Sended')` | NN, DEF=Registered | Estado del ciclo de compra: Registered, Payed, Attended, Sended, Delivered, Canceled o Devolved. | `Delivered` |
 | `status` | `bit(1)` | DEF=b'1' | Baja lógica de la orden: 1 activa, 0 inactiva. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
-| `last_update` | `datetime` | — | Fecha y hora de la última transición de estado; la asignan los procedimientos del flujo de compra. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
+| `last_update` | `datetime` | — | Fecha y hora de la última transición de estado; la asignan los procedimientos del flujo de compra. | `2026-11-19 20:06:48` |
 
 - Índice no único `fk_user_2_idx` sobre (User_ID)
 - Índice no único `idx_orders_address` sobre (shipping_address_ID)
@@ -272,7 +274,7 @@ Formas de pago del catálogo comercial que se ligan a cada cobro; cada una perte
 | `type_ID` | `int unsigned` | FK→tbc_payment_methods_types.ID | Tipo (tbc_payment_methods_types.ID) al que pertenece la forma de pago. | `1` |
 | `description` | `varchar(255)` | — | Texto descriptivo libre del registro. | `Pago en efectivo` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:37` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:25` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice no único `fk_payment_methods_type` sobre (type_ID)
@@ -296,13 +298,13 @@ Movimientos bancarios de cada cobro: autorización, captura, anulación, reembol
 | `amount` | `decimal(10,2)` | NN | Monto monetario del movimiento, en la moneda indicada (por defecto MXN), con dos decimales; debe ser mayor que cero. | `28319.67` |
 | `currency` | `char(3)` | NN, DEF=MXN | Código de moneda ISO 4217 de tres letras; por defecto MXN. | `MXN` |
 | `provider` | `varchar(60)` | UQ | Nombre del proveedor del servicio financiero o pasarela que procesa el movimiento (por ejemplo BancoSim, Spin). | `BancoSim` |
-| `provider_transaction_id` | `varchar(150)` | UQ | Identificador de la transacción asignado por el proveedor; UNIQUE con provider. | `TXN-102163630467842050` |
-| `idempotency_key` | `varchar(100)` | UQ | Clave de idempotencia que impide procesar dos veces la misma operación; UNIQUE con provider. | `17e9b984-de59-11f1-b6a6-4c82a92a025a` |
+| `provider_transaction_id` | `varchar(150)` | UQ | Identificador de la transacción asignado por el proveedor; UNIQUE con provider. | `TXN-102168306395381809` |
+| `idempotency_key` | `varchar(100)` | UQ | Clave de idempotencia que impide procesar dos veces la misma operación; UNIQUE con provider. | `0b332d27-e487-11f1-8a49-4c82a92a025a` |
 | `response_code` | `varchar(100)` | — | Código de respuesta del proveedor (00 = aprobada, 51 = fondos/límite insuficiente). | `00` |
 | `response_message` | `varchar(500)` | — | Mensaje de respuesta del proveedor (por ejemplo Límite excedido de crédito). | `Aprobada` |
-| `request_date` | `datetime` | NN | Fecha y hora en que se envió la solicitud al proveedor. | `2026-11-11 23:22:45` |
-| `response_date` | `datetime` | — | Fecha y hora en que respondió el proveedor. | `2026-11-11 23:22:45` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
+| `request_date` | `datetime` | NN | Fecha y hora en que se envió la solicitud al proveedor. | `2026-11-19 20:06:48` |
+| `response_date` | `datetime` | — | Fecha y hora en que respondió el proveedor. | `2026-11-19 20:06:48` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice no único `fk_payment_transaction_refund_payment` sobre (refund_ID, payment_ID)
@@ -332,13 +334,13 @@ Cobros de una orden. Una orden con pago en mensualidades genera un registro por 
 | `currency` | `char(3)` | NN, DEF=MXN | Código de moneda ISO 4217 de tres letras; por defecto MXN. | `MXN` |
 | `installment_number` | `tinyint unsigned` | NN, UQ, DEF=1 | Número de parcialidad (1..installments_total); UNIQUE junto con order_ID. | `1` |
 | `installments_total` | `tinyint unsigned` | NN, DEF=1 | Total de pagos mensuales de la orden (1 = pago único; hasta 12 solo con crédito). | `1` |
-| `due_date` | `date` | — | Fecha de vencimiento de la parcialidad (un mes después de la anterior). | `2026-11-11` |
+| `due_date` | `date` | — | Fecha de vencimiento de la parcialidad (un mes después de la anterior). | `2026-11-19` |
 | `payment_status` | `enum('Pending','Authorized','Paid','Failed','Refunded','PartiallyRefunded')` | NN, DEF=Pending | Estado del cobro: Pending, Authorized, Paid, Failed, Refunded o PartiallyRefunded. | `Paid` |
 | `provider` | `varchar(60)` | UQ | Proveedor financiero que procesa el cobro. | `BancoSim` |
-| `provider_reference` | `varchar(150)` | UQ | Referencia única que asigna el proveedor al movimiento; junto con provider evita duplicados. | `PAY-102163630467842049` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
-| `paid_date` | `datetime` | — | Fecha y hora en que el cobro se capturó con éxito. | `2026-11-11 23:22:45` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:45` |
+| `provider_reference` | `varchar(150)` | UQ | Referencia única que asigna el proveedor al movimiento; junto con provider evita duplicados. | `PAY-102168306395381808` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
+| `paid_date` | `datetime` | — | Fecha y hora en que el cobro se capturó con éxito. | `2026-11-19 20:06:48` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:48` |
 
 - Índice no único `fk_payment_method` sobre (payment_method_ID)
 - Índice no único `idx_payment_order` sobre (order_ID)
@@ -376,6 +378,26 @@ Datos personales y de contacto de la persona dueña de una cuenta (relación 1 a
 - Índice único `user_ID` sobre (user_ID)
 - FK `fk_persons_users`: (user_ID) → `tb_users` (ID), ON DELETE NO ACTION
 - Triggers: 3 (after delete, after insert, after update) que registran la auditoría en `tb_logs`
+
+### `tb_practica04_trace`
+
+**Tipo:** Transaccional / maestra · **Rol:** Auditoría · **Motor:** InnoDB · **Registros:** 52
+
+Marcas de inicio de cada paso de los 5 casos de prueba de la Práctica 04; permiten a las vistas vw_practica04_caso_N ligar cada evento de tb_logs con el paso que lo originó.
+
+| Campo (Nomenclatura) | Tipo de dato | Restricciones | Descripción funcional y de negocio | Ejemplo de valor |
+|---|---|---|---|---|
+| `ID` | `int unsigned` | PK, NN, AI | Identificador único autoincremental del registro; llave primaria de la tabla. | `1` |
+| `caso` | `tinyint unsigned` | NN | Número de caso de prueba (1 a 5); CHECK entre 1 y 5. | `1` |
+| `paso` | `tinyint unsigned` | NN | Paso dentro del caso: 0 = preparación, 1..n = paso del enunciado, 99 = marca de fin del caso. | `1` |
+| `descripcion` | `varchar(300)` | NN | Texto del paso tal como se ejecutó en el script del caso. | `PASO 1. Un usuario nuevo se registra con s…` |
+| `rol` | `varchar(100)` | — | Rol activo de la conexión al iniciar el paso (user_not_registered, buyer o superadmin). | ``user_not_registered`@`%`` |
+| `db_user` | `varchar(80)` | NN | Usuario@host de la conexión que ejecutó el paso (app_web o adrian.rios). | `app_web@localhost` |
+| `log_start_ID` | `int` | NN | Primer tb_logs.ID generado desde este paso; el rango termina donde empieza el paso siguiente. | `189413` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:47` |
+
+- Índice no único `idx_trace_caso` sobre (caso, ID)
+- CHECK `chk_trace_caso`: `(`caso` between 1 and 5)`
 
 ### `tb_products`
 
@@ -415,12 +437,12 @@ Reembolsos a un pago originados por cancelaciones, devoluciones o ajustes.
 | `currency` | `char(3)` | NN, DEF=MXN | Código de moneda ISO 4217 de tres letras; por defecto MXN. | `MXN` |
 | `refund_status` | `enum('Pending','Submitted','Succeeded','Failed','Canceled')` | NN, DEF=Pending | Pending, Submitted, Succeeded, Failed o Canceled. | `Succeeded` |
 | `provider` | `varchar(60)` | UQ | Nombre del proveedor del servicio financiero o pasarela que procesa el movimiento (por ejemplo BancoSim, Spin). | `GiftCoupon` |
-| `provider_reference` | `varchar(150)` | UQ | Referencia única que asigna el proveedor al movimiento; junto con provider evita duplicados. | `RF-102163630467842095` |
+| `provider_reference` | `varchar(150)` | UQ | Referencia única que asigna el proveedor al movimiento; junto con provider evita duplicados. | `RF-102168306395381854` |
 | `requested_by_user_ID` | `int` | FK→tb_users.ID | Usuario (tb_users.ID) que solicitó el trámite; NULL cuando lo genera el sistema. | `5100` |
 | `reason_detail` | `varchar(1000)` | — | Explicación libre del motivo capturada por el solicitante. | `Reembolso por cancelación parcial de produ…` |
-| `requested_at` | `datetime` | NN | Fecha y hora en que se solicitó el trámite. | `2026-11-11 23:22:46` |
-| `processed_at` | `datetime` | — | Fecha y hora en que el proveedor procesó el reembolso. | `2026-11-11 23:22:46` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:46` |
+| `requested_at` | `datetime` | NN | Fecha y hora en que se solicitó el trámite. | `2026-11-19 20:06:50` |
+| `processed_at` | `datetime` | — | Fecha y hora en que el proveedor procesó el reembolso. | `2026-11-19 20:06:50` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:50` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice no único `idx_refunds_cancellation` sobre (cancellation_ID)
@@ -453,13 +475,13 @@ Reclamaciones de devolución de productos ya entregados, con su trámite de reco
 | `return_status` | `enum('Requested','Authorized','Rejected','LabelCreated','InTransit','Received','Inspected','Approved','PartiallyApproved','Refunded','Closed')` | NN, DEF=Requested | Requested, Authorized, Rejected, LabelCreated, InTransit, Received, Inspected, Approved, PartiallyApproved, Refunded o Closed. | `Closed` |
 | `return_carrier` | `varchar(100)` | — | Paquetería de la devolución. | NULL |
 | `return_tracking_number` | `varchar(150)` | — | Guía de la devolución. | NULL |
-| `requested_at` | `datetime` | NN | Fecha y hora en que se solicitó el trámite. | `2026-11-11 23:22:46` |
-| `authorized_at` | `datetime` | — | Fecha y hora de autorización. | `2026-11-11 23:22:46` |
-| `received_at` | `datetime` | — | Fecha y hora en que se recibió el producto devuelto. | `2026-11-11 23:22:46` |
-| `closed_at` | `datetime` | — | Fecha y hora de cierre del trámite. | `2026-11-11 23:22:46` |
+| `requested_at` | `datetime` | NN | Fecha y hora en que se solicitó el trámite. | `2026-11-19 20:06:49` |
+| `authorized_at` | `datetime` | — | Fecha y hora de autorización. | `2026-11-19 20:06:49` |
+| `received_at` | `datetime` | — | Fecha y hora en que se recibió el producto devuelto. | `2026-11-19 20:06:49` |
+| `closed_at` | `datetime` | — | Fecha y hora de cierre del trámite. | `2026-11-19 20:06:49` |
 | `internal_notes` | `varchar(1000)` | — | Notas internas del personal sobre el trámite; no se muestran al cliente. | `Producto dañado recibido; se envía pieza d…` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:46` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:49` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:49` |
 
 - Índice no único `idx_returns_buyer_order` sobre (buyer_order_ID)
 - Índice no único `idx_returns_requester` sobre (requested_by_user_ID)
@@ -482,8 +504,8 @@ Réplica histórica de tbd_buyer_orders (mismas columnas e identificadores) cons
 | `shipping_cost` | `decimal(12,2)` | NN, DEF=0.00 | Costo de envío en pesos con dos decimales; no puede ser negativo. | `0.00` |
 | `fulfillment_status` | `enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NN, DEF=Pending | Estado de surtido de la suborden: Pending, Accepted, Preparing, Sent, Delivered, Canceled o Returned. | `Delivered` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:48` |
 
 - Índice no único `seller_ID` sobre (seller_ID)
 - CHECK `tb_seller_orders_chk_1`: `(`subtotal` >= 0)`
@@ -514,15 +536,15 @@ Envíos de cada suborden: destinatario y dirección congelados, paquetería, gu�
 | `carrier` | `varchar(100)` | — | Paquetería que transporta el envío. | `SimExpress` |
 | `service_level` | `varchar(100)` | — | Nivel de servicio (Estándar, Reenvío). | `Estándar` |
 | `pickup_point` | `varchar(255)` | — | Punto de recolección donde queda el pedido cuando nadie lo recibe; NULL en entregas a domicilio. | `Punto de recolección SimExpress - Centro d…` |
-| `tracking_number` | `varchar(150)` | — | Número de guía de rastreo. | `SIM102163630467842052` |
+| `tracking_number` | `varchar(150)` | — | Número de guía de rastreo. | `SIM102168306395381811` |
 | `tracking_url` | `varchar(500)` | — | Dirección web de rastreo. | NULL |
 | `shipment_status` | `enum('Pending','LabelCreated','ReadyToShip','InTransit','OutForDelivery','Delivered','DeliveryFailed','Lost','Returned','AtPickupPoint','PickedUp')` | NN, DEF=Pending | Pending, LabelCreated, ReadyToShip, InTransit, OutForDelivery, Delivered, DeliveryFailed, Lost, Returned, AtPickupPoint o PickedUp. | `Delivered` |
 | `shipping_cost` | `decimal(12,2)` | NN, DEF=0.00 | Costo de envío en pesos con dos decimales; no puede ser negativo. | `0.00` |
-| `shipped_at` | `datetime` | — | Fecha y hora de salida del paquete. | `2026-11-11 23:22:46` |
-| `estimated_delivery_at` | `datetime` | — | Fecha estimada de entrega. | `2026-11-14 23:22:46` |
-| `delivered_at` | `datetime` | — | Fecha y hora de entrega o recolección efectiva. | `2026-11-11 23:22:46` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:46` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:46` |
+| `shipped_at` | `datetime` | — | Fecha y hora de salida del paquete. | `2026-11-19 20:06:48` |
+| `estimated_delivery_at` | `datetime` | — | Fecha estimada de entrega. | `2026-11-22 20:06:48` |
+| `delivered_at` | `datetime` | — | Fecha y hora de entrega o recolección efectiva. | `2026-11-19 20:06:48` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:48` |
 
 - Índice no único `idx_shipments_address` sobre (address_ID)
 - Índice no único `idx_shipments_buyer_order` sobre (buyer_order_ID)
@@ -552,7 +574,7 @@ Domicilio guardado por un usuario (etiqueta, destinatario, referencias y coorden
 | `longitude` | `decimal(10,7)` | — | Longitud en grados decimales (-180 a 180); se captura junto con latitude o ambas NULL. | NULL |
 | `is_default` | `tinyint(1)` | NN, DEF=0 | 1 si es el domicilio predeterminado del usuario. | `1` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:38` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:28` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice no único `idx_user_addresses` sobre (user_ID)
@@ -616,7 +638,7 @@ Tipos de método de pago que un usuario puede registrar (débito, crédito, tarj
 | `code` | `varchar(30)` | NN, UQ | Código único del tipo: DEBIT_CARD, CREDIT_CARD, DIGITAL_CARD, SPEI, CASH, GIFT_COUPON. | `CASH` |
 | `description` | `text` | NN | Descripción legible del tipo de método de pago. | `Tarjeta de débito` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:37` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:25` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice único `code_UNIQUE` sobre (code)
@@ -636,7 +658,7 @@ Componentes del domicilio en escalamiento vertical (País > Estado > Municipio >
 | `component_type` | `varchar(50)` | NN | Nivel jerárquico: País, Estado, Municipio, Ciudad, Localidad, Código Postal, Colonia, Calle/Avenida, Número Exterior o Número Interior. | `País` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
 | `address_sup_ID` | `bigint unsigned` | FK→tbd_address_components.ID | Componente superior (mismo address_ID) en el árbol; NULL en la raíz (País). FK compuesta (address_ID, address_sup_ID). | `1` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:39` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:30` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice no único `idx_address_parent` sobre (address_ID, address_sup_ID)
@@ -660,8 +682,8 @@ Suborden por vendedor: agrupa los productos de una orden que surte un mismo prov
 | `shipping_cost` | `decimal(12,2)` | NN, DEF=0.00 | Costo de envío en pesos con dos decimales; no puede ser negativo. | `0.00` |
 | `fulfillment_status` | `enum('Pending','Accepted','Preparing','Sent','Delivered','Canceled','Returned')` | NN, DEF=Pending | Estado de surtido de la suborden: Pending, Accepted, Preparing, Sent, Delivered, Canceled o Returned. | `Delivered` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:48` |
 
 - Índice no único `seller_ID` sobre (seller_ID)
 - Índice único `uk_buyer_orders_order_seller` sobre (order_ID, seller_ID)
@@ -683,7 +705,7 @@ Productos y cantidades incluidos en una cancelación.
 | `cancellation_ID` | `int unsigned` | FK→tb_order_cancellations.ID, NN, UQ | Cancelación (tb_order_cancellations.ID) asociada. | `1` |
 | `order_item_ID` | `int unsigned` | FK→tbd_order_items.ID, NN, UQ | Producto de una suborden (tbd_order_items.ID) al que se refiere el registro. | `24` |
 | `quantity` | `int unsigned` | NN | Unidades canceladas de la línea. | `6` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:50` |
 
 - Índice no único `idx_cancellation_items_order_item` sobre (order_item_ID)
 - Índice único `uk_cancellation_order_item` sobre (cancellation_ID, order_item_ID)
@@ -704,7 +726,7 @@ Líneas del carrito: par (proveedor, producto) y cantidad deseada.
 | `provider_ID` | `int` | PK, FK→tbd_products_users_providers.user_ID, NN | Proveedor (tb_users.ID) elegido para el producto; con product_ID forma la FK compuesta a tbd_products_users_providers. | `7` |
 | `product_ID` | `int unsigned` | PK, FK→tbd_products_users_providers.product_ID, NN | Identificador del producto (tb_products.id) al que se refiere el registro. | `5683` |
 | `quantity` | `int unsigned` | NN, DEF=1 | Unidades deseadas; el trigger de inserción valida existencias suficientes. | `2` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se agregó el producto al carrito. | `2026-11-11 23:22:45` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se agregó el producto al carrito. | `2026-11-19 20:06:47` |
 
 - Índice no único `idx_cart_items_provider_product` sobre (provider_ID, product_ID)
 - Índice no único `product_ID` sobre (product_ID)
@@ -731,7 +753,7 @@ Productos de cada suborden con nombre y precio congelados al momento de la compr
 | `canceled_quantity` | `int unsigned` | NN, DEF=0 | Unidades canceladas; no puede exceder quantity (CHECK). Unidades vigentes = quantity - canceled_quantity. | `0` |
 | `unit_price` | `decimal(12,2)` | NN | Precio unitario congelado al comprar, en pesos; no negativo. | `2058.10` |
 | `subtotal` | `decimal(12,2) = (`quantity` * `unit_price`)` | GEN | Columna generada = quantity × unit_price (sin descontar cancelaciones). | `4116.20` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
 
 - Índice no único `idx_order_items_buyer_order` sobre (buyer_order_ID)
 - Índice no único `idx_order_items_provider_product` sobre (provider_ID, product_ID)
@@ -775,9 +797,9 @@ Oferta comercial: qué usuario (proveedor/vendedor) ofrece qué producto y con q
 | `product_ID` | `int unsigned` | PK, FK→tb_products.id, NN | Identificador del producto (tb_products.id) al que se refiere el registro. | `1` |
 | `type_ownership` | `enum('Owner','Reseller','Distributor')` | — | Relación comercial del proveedor con el producto: Owner, Reseller o Distributor. | `Owner` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `available_date` | `datetime` | NN | Fecha desde la que el proveedor ofrece el producto. | `2026-11-11 23:22:37` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:37` |
-| `last_update` | `datetime` | NN | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:37` |
+| `available_date` | `datetime` | NN | Fecha desde la que el proveedor ofrece el producto. | `2026-11-19 20:06:25` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:25` |
+| `last_update` | `datetime` | NN | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:25` |
 
 - Índice no único `fk_products2` sobre (product_ID)
 - FK `fk_products2`: (product_ID) → `tb_products` (id), ON DELETE NO ACTION
@@ -800,8 +822,8 @@ Productos devueltos con condición, destino físico y reembolso aprobado.
 | `disposition` | `enum('Pending','Restock','Repair','Dispose','SupplierReturn')` | NN, DEF=Pending | Destino físico: Pending, Restock, Repair, Dispose o SupplierReturn. | `SupplierReturn` |
 | `approved_refund_amount` | `decimal(12,2)` | NN, DEF=0.00 | Importe aprobado para reembolso; 0 cuando se resuelve con reenvío. | `0.00` |
 | `item_status` | `enum('Requested','Approved','Rejected','Received','Refunded')` | NN, DEF=Requested | Requested, Approved, Rejected, Received o Refunded. | `Approved` |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:46` |
-| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-11 23:22:46` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:49` |
+| `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:49` |
 
 - Índice no único `idx_return_items_order_item` sobre (order_item_ID)
 - Índice único `uk_return_order_item` sobre (return_ID, order_item_ID)
@@ -828,7 +850,7 @@ Método de pago registrado por un usuario (cuenta simulada de 16 dígitos, token
 | `last_four` | `char(4)` | — | Últimos cuatro dígitos para mostrar; CHECK ^[0-9]{4}$ o NULL. | `4419` |
 | `is_default` | `tinyint(1)` | NN, DEF=0 | Marca (1/0) de predeterminado del usuario; solo debería existir uno activo por usuario [Verificar regla de negocio]. | `1` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-11 23:22:45` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:48` |
 | `last_update` | `datetime` | — | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | NULL |
 
 - Índice no único `payment_method_type_ID` sobre (payment_method_type_ID)
@@ -850,8 +872,8 @@ Lista de deseos: productos que un usuario marcó para consulta o compra futura.
 | `user_ID` | `int` | PK, FK→tb_users.ID, NN | Usuario (tb_users.ID) dueño de la lista de deseos. | `1500` |
 | `product_ID` | `int unsigned` | PK, FK→tb_products.id, NN | Identificador del producto (tb_products.id) al que se refiere el registro. | `120` |
 | `status` | `bit(1)` | NN, DEF=b'1' | Indicador de baja lógica: 1 = activo, 0 = inactivo. Los registros no se eliminan físicamente para conservar la trazabilidad. | 1 |
-| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-18 20:46:49` |
-| `last_update` | `datetime` | NN | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-18 20:46:49` |
+| `creation_date` | `datetime` | NN | Fecha y hora en que se creó el registro; la asigna el SGBD con CURRENT_TIMESTAMP y no se modifica. | `2026-11-19 20:06:52` |
+| `last_update` | `datetime` | NN | Fecha y hora de la última modificación del registro; se actualiza automáticamente en cada UPDATE cuando la tabla lo define con ON UPDATE. | `2026-11-19 20:06:52` |
 
 - Índice no único `fk_products3` sobre (product_ID)
 - FK `fk_products3`: (product_ID) → `tb_products` (id), ON DELETE NO ACTION
@@ -865,6 +887,13 @@ Lista de deseos: productos que un usuario marcó para consulta o compra futura.
 | `vw_available_products` | Productos activos con proveedor activo y existencias > 0; base del catálogo para el carrito. |
 | `vw_cart_to_order` | Une cada carrito con la orden que generó (si existe), con sus unidades y estado. |
 | `vw_order_detail` | Trazabilidad orden → suborden de vendedor → producto con unidades canceladas y subtotal vigente. |
+| `vw_practica04_caso_1` | Bitácora cronológica del caso de prueba 1 de la Práctica 04: quién ejecutó cada paso, con qué conexión, en qué tabla y qué cambió (basada en `tb_logs`). |
+| `vw_practica04_caso_2` | Bitácora cronológica del caso de prueba 2 de la Práctica 04: quién ejecutó cada paso, con qué conexión, en qué tabla y qué cambió (basada en `tb_logs`). |
+| `vw_practica04_caso_3` | Bitácora cronológica del caso de prueba 3 de la Práctica 04: quién ejecutó cada paso, con qué conexión, en qué tabla y qué cambió (basada en `tb_logs`). |
+| `vw_practica04_caso_4` | Bitácora cronológica del caso de prueba 4 de la Práctica 04: quién ejecutó cada paso, con qué conexión, en qué tabla y qué cambió (basada en `tb_logs`). |
+| `vw_practica04_caso_5` | Bitácora cronológica del caso de prueba 5 de la Práctica 04: quién ejecutó cada paso, con qué conexión, en qué tabla y qué cambió (basada en `tb_logs`). |
+| `vw_practica04_pasos` | Consulta de trazabilidad: operaciones de auditoría de `tb_logs` relativas a vw_practica04_pasos. |
+| `vw_practica04_resumen` | Resumen de los 5 casos de prueba: comprador, orden, estado, totales, domicilio, pagos, reembolsos y envíos. |
 | `vw_total_products_by_category` | Conteo de productos por categoría. |
 | `vw_total_products_by_category1` | Variante del conteo de productos por categoría. |
 | `vw_trazabilidad_address_components` | Consulta de trazabilidad: operaciones de auditoría de `tb_logs` relativas a address_components. |
@@ -927,6 +956,7 @@ Lista de deseos: productos que un usuario marcó para consulta o compra futura.
 | `sp_simulate_users_bulk` | Administración | IN p_quantity int unsigned, IN p_batch_size int unsigned | Carga masiva o mantenimiento de datos de prueba (Práctica 03). |
 | `sp_soft_delete_product` | Administración | IN p_product_id int unsigned | Carga masiva o mantenimiento de datos de prueba (Práctica 03). |
 | `sp_soft_delete_user` | Administración | IN p_user_id int unsigned | Carga masiva o mantenimiento de datos de prueba (Práctica 03). |
+| `sp_trace_step` | Usuario / Sistema | IN p_caso tinyint unsigned, IN p_paso tinyint unsigned, IN p_descripcion varchar(300), IN p_rol varchar(100) | Registra en tb_practica04_trace el inicio de un paso de un caso de prueba (trazabilidad). |
 
 | Función | Parámetros | Retorna |
 |---|---|---|
@@ -939,7 +969,7 @@ Lista de deseos: productos que un usuario marcó para consulta o compra futura.
 
 ## Triggers
 
-Hay 87 triggers. Casi todos son de auditoría (`AFTER INSERT/UPDATE/DELETE` → `tb_logs`). Triggers de validación del flujo de compra:
+Hay 89 triggers. Casi todos son de auditoría (`AFTER INSERT/UPDATE/DELETE` → `tb_logs`). Triggers de validación del flujo de compra:
 
 - `trg_tbd_cart_items_before_insert`: exige carrito activo y producto disponible con existencias suficientes.
 - `trg_tbd_cart_items_before_update` / `before_delete`: impiden modificar un carrito ya convertido en orden.
@@ -947,6 +977,7 @@ Hay 87 triggers. Casi todos son de auditoría (`AFTER INSERT/UPDATE/DELETE` → 
 | Tabla | Triggers |
 |---|---:|
 | `tb_carts` | 3 |
+| `tb_gift_coupons` | 2 |
 | `tb_order_cancellations` | 3 |
 | `tb_orders` | 3 |
 | `tb_payment_methods` | 3 |
@@ -1095,6 +1126,9 @@ erDiagram
     tb_people {
         bigint person_ID PK
         int user_ID FK,UK
+    }
+    tb_practica04_trace {
+        int ID PK
     }
     tb_products {
         int id PK

@@ -10,6 +10,7 @@ SET @uid = 1500;
 SET @order = (SELECT MAX(ID) FROM tb_orders WHERE User_ID = @uid);
 
 /* PASO 9. Reclama un producto dañado (tercer producto de la orden, 1 unidad) */
+CALL sp_trace_step(2, 9, 'PASO 9. Reclama un producto dañado (tercer producto de la orden, 1 unidad)', CURRENT_ROLE());
 SET @item = (SELECT ID FROM tbd_order_items WHERE buyer_order_ID IN (SELECT ID FROM tbd_buyer_orders WHERE order_ID = @order) ORDER BY ID LIMIT 1 OFFSET 2);
 SELECT ID AS order_item_ID, product_ID, product_name, quantity FROM tbd_order_items WHERE ID = @item;
 CALL sp_request_return(@uid, @item, 1, 'Damaged', 'DAMAGED_ON_ARRIVAL', 'El producto llegó con la caja abierta y la pieza rota', @ret);

@@ -269,6 +269,10 @@ def desc_vista(v):
            "vw_order_detail": "Trazabilidad orden → suborden de vendedor → producto con unidades canceladas y subtotal vigente.",
            "vw_total_products_by_category": "Conteo de productos por categoría.",
            "vw_total_products_by_category1": "Variante del conteo de productos por categoría."}
+    if v.startswith("vw_practica04_caso_"):
+        return "Bitácora cronológica del caso de prueba " + v[-1] + " de la Práctica 04: quién ejecutó cada paso, con qué conexión, en qué tabla y qué cambió (basada en `tb_logs`)."
+    if v == "vw_practica04_resumen":
+        return "Resumen de los 5 casos de prueba: comprador, orden, estado, totales, domicilio, pagos, reembolsos y envíos."
     if v in esp:
         return esp[v]
     return "Consulta de trazabilidad: operaciones de auditoría de `tb_logs` relativas a " + v.replace("vw_trazabilidad_", "") + "."

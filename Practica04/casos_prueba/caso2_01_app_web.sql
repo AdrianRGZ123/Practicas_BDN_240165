@@ -9,6 +9,7 @@ SELECT CURRENT_USER() AS usuario_conexion, CURRENT_ROLE() AS rol_activo;
 SET @uid = 1500;
 
 /* PASO 1. Crea 1 carrito con 10 productos aleatorios, cantidades de 1 a 5 unidades */
+CALL sp_trace_step(2, 1, 'PASO 1. Crea 1 carrito con 10 productos aleatorios, cantidades de 1 a 5 unidades', CURRENT_ROLE());
 INSERT INTO tb_carts (user_ID) VALUES (@uid);
 SET @cart = LAST_INSERT_ID();
 INSERT INTO tbd_cart_items (cart_ID, provider_ID, product_ID, quantity)
@@ -19,18 +20,21 @@ SELECT ci.provider_ID, ci.product_ID, p.name, ci.quantity, p.current_price, ci.q
 FROM tbd_cart_items ci JOIN tb_products p ON p.id = ci.product_ID WHERE ci.cart_ID = @cart ORDER BY ci.provider_ID, ci.product_ID;
 
 /* PASO 2. Realiza la orden de compra */
+CALL sp_trace_step(2, 2, 'PASO 2. Realiza la orden de compra', CURRENT_ROLE());
 CALL sp_create_order_from_cart(@uid, @order);
 SELECT * FROM vw_cart_to_order WHERE cart_ID = @cart;
 SELECT buyer_order_ID, seller_ID, COUNT(*) AS productos, SUM(active_subtotal) AS subtotal_vendedor
 FROM vw_order_detail WHERE order_ID = @order GROUP BY buyer_order_ID, seller_ID;
 
 /* PASO 3. Registra su domicilio de envío en un lugar que no es su hogar (trabajo) */
+CALL sp_trace_step(2, 3, 'PASO 3. Registra su domicilio de envío en un lugar que no es su hogar (trabajo)', CURRENT_ROLE());
 CALL sp_register_address(@uid, 'Trabajo', 'Carlos López (Recepción)', '+52 5557001122', 'Entregar en recepción, horario de 9 a 18 h', 0,
      'Ciudad de México', 'Cuauhtémoc', 'Ciudad de México', 'Juárez', '06600', 'Juárez', 'Calle Londres', '247', '3B', @addr);
 CALL sp_set_order_address(@order, @addr);
 SELECT * FROM vw_user_addresses_full WHERE address_ID = @addr;
 
 /* PASO 4. Registra su método de pago: tarjeta de crédito (cuenta simulada de 16 dígitos) */
+CALL sp_trace_step(2, 4, 'PASO 4. Registra su método de pago: tarjeta de crédito (cuenta simulada de 16 dígitos)', CURRENT_ROLE());
 SET @card = '4916338506082832';
 INSERT INTO tbd_user_payment_methods (user_ID, payment_method_type_ID, provider, provider_method_ref, label, last_four, is_default)
 SELECT @uid, ID, 'BancoSim', @card, 'Crédito Carlos', RIGHT(@card, 4), 0
@@ -41,6 +45,7 @@ JOIN tbc_payment_methods_types t ON t.ID = m.payment_method_type_ID WHERE m.ID =
 
 /* PASO 5. Registra 6 pagos mensuales (al pagar se activa el rol buyer) */
 SET ROLE 'buyer';
+CALL sp_trace_step(2, 5, 'PASO 5. Registra 6 pagos mensuales (al pagar se activa el rol buyer)', CURRENT_ROLE());
 SELECT CURRENT_ROLE() AS rol_activo;
 CALL sp_register_payment(@order, @upm, 6, NULL, @pay);
 SELECT ID, installment_number, installments_total, due_date, amount, payment_status FROM tb_payments WHERE order_ID = @order ORDER BY installment_number;

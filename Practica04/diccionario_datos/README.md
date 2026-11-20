@@ -1,6 +1,6 @@
 # Diccionario de datos de `db_test` — Práctica 04
 
-Documentación de la base `db_test` tal como queda tras la Práctica 04 (procesos de simulación de compra), generada el 18-11-2026 a partir de la base restaurada de `backups/Respaldo 18-11-26.sql`.
+Documentación de la base `db_test` tal como queda tras la Práctica 04 (procesos de simulación de compra), generada el 19-11-2026 a partir de la base restaurada de `backups/Respaldo 18-11-26.sql`.
 
 ## Archivos
 
@@ -8,7 +8,7 @@ Documentación de la base `db_test` tal como queda tras la Práctica 04 (proceso
 |---|---|
 | [diccionario_datos.md](diccionario_datos.md) | Documento principal: convenciones de nomenclatura, resumen, relaciones, una tabla por entidad (campo, tipo, restricciones, descripción de negocio y ejemplo), vistas, procedimientos, triggers, reglas de integridad y pendientes. |
 | [diccionario_datos.xlsx](diccionario_datos.xlsx) | Mismo contenido en hojas filtrables: `Resumen_Entidades`, `Diccionario_Campos`, `Relaciones`, `Vistas`, `Procedimientos` y `Restricciones_CHECK`. |
-| [diagrama_er.mmd](diagrama_er.mmd) | Diagrama entidad-relación en Mermaid (`erDiagram`): 28 entidades y 48 relaciones. |
+| [diagrama_er.mmd](diagrama_er.mmd) | Diagrama entidad-relación en Mermaid (`erDiagram`): 29 entidades y 48 relaciones. |
 | [schema.dbml](schema.dbml) | Esquema en DBML con tipos, llaves, enums, índices, notas y referencias. |
 
 ## Cómo consultarlos

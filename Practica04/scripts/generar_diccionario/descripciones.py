@@ -31,6 +31,7 @@ TABLAS = {
  "tb_returns": ("Posventa", "Reclamaciones de devolución de productos ya entregados, con su trámite de recolección e inspección."),
  "tbd_return_items": ("Posventa", "Productos devueltos con condición, destino físico y reembolso aprobado."),
  "tb_refunds": ("Posventa", "Reembolsos a un pago originados por cancelaciones, devoluciones o ajustes."),
+ "tb_practica04_trace": ("Auditoría", "Marcas de inicio de cada paso de los 5 casos de prueba de la Práctica 04; permiten a las vistas vw_practica04_caso_N ligar cada evento de tb_logs con el paso que lo originó."),
  "tb_logs": ("Auditoría", "Bitácora de auditoría alimentada por triggers: tabla, operación, usuario del SGBD y descripción del cambio."),
 }
 
@@ -210,6 +211,12 @@ ESP = {
  ("tb_refunds", "reason"): "Origen: Cancellation, Return, Adjustment o Goodwill (CHECK con cancellation_ID/return_ID).",
  ("tb_refunds", "refund_status"): "Pending, Submitted, Succeeded, Failed o Canceled.",
  ("tb_refunds", "processed_at"): "Fecha y hora en que el proveedor procesó el reembolso.",
+ ("tb_practica04_trace", "caso"): "Número de caso de prueba (1 a 5); CHECK entre 1 y 5.",
+ ("tb_practica04_trace", "paso"): "Paso dentro del caso: 0 = preparación, 1..n = paso del enunciado, 99 = marca de fin del caso.",
+ ("tb_practica04_trace", "descripcion"): "Texto del paso tal como se ejecutó en el script del caso.",
+ ("tb_practica04_trace", "rol"): "Rol activo de la conexión al iniciar el paso (user_not_registered, buyer o superadmin).",
+ ("tb_practica04_trace", "db_user"): "Usuario@host de la conexión que ejecutó el paso (app_web o adrian.rios).",
+ ("tb_practica04_trace", "log_start_ID"): "Primer tb_logs.ID generado desde este paso; el rango termina donde empieza el paso siguiente.",
  ("tb_logs", "table_name"): "Tabla afectada por la operación auditada.",
  ("tb_logs", "operation"): "Create, Read, Update o Delete.",
  ("tb_logs", "db_user"): "Usuario del SGBD (USER()) que ejecutó la operación.",
@@ -221,6 +228,7 @@ ESP = {
 EJEMPLOS_VACIOS = {}
 
 PROCS = {
+ "sp_trace_step": ("Usuario / Sistema", "Registra en tb_practica04_trace el inicio de un paso de un caso de prueba (trazabilidad)."),
  "sp_register_address": ("Usuario", "Registra un domicilio completo y su árbol de 10 niveles en una transacción (SQL SECURITY INVOKER)."),
  "sp_create_order_from_cart": ("Usuario", "Convierte el carrito activo en orden, subórdenes por vendedor y líneas con precio congelado; cierra el carrito."),
  "sp_set_order_address": ("Usuario", "Asigna a la orden un domicilio que pertenezca al comprador."),

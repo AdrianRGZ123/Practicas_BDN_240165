@@ -9,6 +9,7 @@ SELECT CURRENT_USER() AS usuario_conexion, CURRENT_ROLE() AS rol_activo;
 SET @uid = 5100;
 
 /* PASO 1. Carrito con 3 productos de la MISMA categoría, cantidades de 1 a 10 unidades */
+CALL sp_trace_step(3, 1, 'PASO 1. Carrito con 3 productos de la MISMA categoría, cantidades de 1 a 10 unidades', CURRENT_ROLE());
 SET @cat = (SELECT pc.category_ID
             FROM tbd_products_categories pc JOIN vw_available_products v ON v.product_ID = pc.product_ID
             WHERE v.current_stock >= 10
@@ -27,16 +28,19 @@ SELECT ci.product_ID, p.name, ci.quantity, p.current_price, ci.quantity * p.curr
 FROM tbd_cart_items ci JOIN tb_products p ON p.id = ci.product_ID WHERE ci.cart_ID = @cart;
 
 /* PASO 2. Realiza la orden de compra */
+CALL sp_trace_step(3, 2, 'PASO 2. Realiza la orden de compra', CURRENT_ROLE());
 CALL sp_create_order_from_cart(@uid, @order);
 SELECT * FROM vw_cart_to_order WHERE cart_ID = @cart;
 
 /* PASO 3. Domicilio de envío en un lugar que no es su hogar: etiqueta "Casa Papas" */
+CALL sp_trace_step(3, 3, 'PASO 3. Domicilio de envío en un lugar que no es su hogar: etiqueta "Casa Papas"', CURRENT_ROLE());
 CALL sp_register_address(@uid, 'Casa Papas', 'Robert Williams', '+52 2281345670', 'Los papás recibirán el pedido; preguntar por Robert', 0,
      'Veracruz', 'Xalapa', 'Xalapa-Enríquez', 'Xalapa Centro', '91000', 'Salud', 'Calle Enríquez', '58', NULL, @addr);
 CALL sp_set_order_address(@order, @addr);
 SELECT * FROM vw_user_addresses_full WHERE address_ID = @addr;
 
 /* PASO 4. Método de pago: tarjeta digital Spin (cuenta simulada de 16 dígitos) */
+CALL sp_trace_step(3, 4, 'PASO 4. Método de pago: tarjeta digital Spin (cuenta simulada de 16 dígitos)', CURRENT_ROLE());
 SET @card = '7312904455186027';
 INSERT INTO tbd_user_payment_methods (user_ID, payment_method_type_ID, provider, provider_method_ref, label, last_four, is_default)
 SELECT @uid, ID, 'Spin', @card, 'Spin John', RIGHT(@card, 4), 0
@@ -47,6 +51,7 @@ JOIN tbc_payment_methods_types t ON t.ID = m.payment_method_type_ID WHERE m.ID =
 
 /* PASO 5. Registra un solo pago en efectivo por el costo total de la compra (rol buyer) */
 SET ROLE 'buyer';
+CALL sp_trace_step(3, 5, 'PASO 5. Registra un solo pago en efectivo por el costo total de la compra (rol buyer)', CURRENT_ROLE());
 SELECT CURRENT_ROLE() AS rol_activo;
 CALL sp_register_payment(@order, @upm, 1, 'CASH', @pay);
 SELECT p.ID, p.order_ID, p.amount, pm.name AS forma_de_pago, p.payment_status, p.user_payment_method_ID
